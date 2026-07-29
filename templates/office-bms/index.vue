@@ -11,48 +11,27 @@
             </div>
         </header>
 
-        <main class="office-bms__grid">
-            <section class="office-bms__panel">
-                <span class="office-bms__metric">{{ devices.data.value.length }}</span>
-                <span>Devices</span>
-            </section>
-            <section class="office-bms__panel">
-                <span class="office-bms__metric">{{ onlineCount }}</span>
-                <span>Online</span>
-            </section>
-            <section class="office-bms__panel">
-                <span class="office-bms__metric">{{ floors.length }}</span>
-                <span>Floors</span>
-            </section>
+        <main class="office-bms__content">
+            <Dashboard :devices="devices.data.value" :roles="roles" />
         </main>
     </div>
 </template>
 
 <script setup lang="ts">
-import {
-    useCurrentUser,
-    useCustomization,
-    useDevices,
-    useLocations
-} from '@host';
+import {useCurrentUser, useCustomization, useDevices} from '@host';
 import {computed, onMounted} from 'vue';
+import Dashboard from './components/Dashboard.vue';
+import {useDeviceRoles} from './composables/useDeviceRoles';
 
 const customization = useCustomization();
 const user = useCurrentUser();
 const devices = useDevices();
-const locationsState = useLocations();
 const buildingName = 'Office Building';
 
-const onlineCount = computed(
-    () => devices.data.value.filter((device) => device.online).length
-);
-const floors = computed(
-    () => locationsState.data.value.filter((location) => location.kind === 'floor')
-);
+const roles = useDeviceRoles(computed(() => devices.data.value));
 
 onMounted(() => {
     void devices.refresh();
-    void locationsState.refresh();
 });
 </script>
 
@@ -69,7 +48,7 @@ onMounted(() => {
     align-items: flex-start;
     justify-content: space-between;
     gap: var(--space-6);
-    max-width: 1120px;
+    max-width: 1200px;
     margin: 0 auto 28px;
 }
 
@@ -82,27 +61,5 @@ onMounted(() => {
 .office-bms h1 {
     margin: 0;
     font-size: var(--type-subheading);
-}
-
-.office-bms__grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: var(--space-4);
-    max-width: 1120px;
-    margin: 0 auto;
-}
-
-.office-bms__panel {
-    display: grid;
-    gap: var(--space-2);
-    padding: var(--space-5);
-    border: 1px solid color-mix(in srgb, var(--fm-template-text) 14%, transparent);
-    border-radius: var(--radius-md);
-    background: var(--fm-template-card);
-}
-
-.office-bms__metric {
-    font-size: var(--type-subheading);
-    font-weight: 800;
 }
 </style>
