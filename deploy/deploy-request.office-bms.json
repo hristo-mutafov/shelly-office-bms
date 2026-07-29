@@ -1,0 +1,25 @@
+{
+    "template": "office-bms",
+    "templateSource": {
+        "repo": "../bms-template",
+        "ref": "local"
+    },
+    "templateManifestVersion": 1,
+    "overridesSchemaVersion": 1,
+    "overrides": {
+        "schemaVersion": 1,
+        "clientName": "Acme Office",
+        "title": "Acme Office BMS",
+        "subtitle": "Building management overview",
+        "theme": {
+            "primary": "#1f73d6",
+            "accent": "#18a999",
+            "background": "#f6f8fb",
+            "surface": "#ffffff",
+            "text": "#172033",
+            "sidebar": "#111827",
+            "card": "#ffffff"
+        },
+        "buildingName": "Acme Office Building"
+    }
+}
