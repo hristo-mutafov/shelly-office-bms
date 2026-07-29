@@ -17,19 +17,11 @@ export type FloorZone = {
     points: {x: number; y: number}[];
 };
 
+// Stored in the shadow group's metadata.viz (group.metadata has a 64KB
+// budget and no per-field size cap, unlike Location.kindFields.floorPlan.url
+// which is capped at 2048 chars — too small for an embedded image).
 export type FloorVisualization = {
     floorPlan?: FloorPlanMeta;
     devicePlacements?: Record<string, DevicePlacement>;
     zones?: FloorZone[];
-};
-
-export type SetFloorPlanInput = {
-    locationId: number;
-    floorPlan: FloorPlanMeta;
-};
-
-export type SetDevicePlacementInput = {
-    locationId: number;
-    deviceId: string;
-    placement: DevicePlacement;
 };

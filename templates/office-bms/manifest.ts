@@ -15,14 +15,17 @@ export const manifest: TemplateManifest = {
     ],
     requiredHostExports: [
         'useDevices',
-        'useDeviceCapabilities',
-        'useDeviceActions',
+        'devices',
         'useGroups',
+        'useGroupActions',
+        'groups',
         'useLocations',
+        'locations',
         'useCustomization',
         'useCurrentUser',
         'useLiveMetric',
-        'useMetricHistory'
+        'metrics',
+        'callMethod'
     ]
 };
 

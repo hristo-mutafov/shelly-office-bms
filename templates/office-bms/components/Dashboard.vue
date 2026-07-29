@@ -51,6 +51,19 @@
             message="No devices onboarded yet — approve them in FM's Waiting Room to see live data here."
             icon="fas fa-plug"
         />
+
+        <section v-if="devices.length" class="dashboard__devices">
+            <h2>Devices</h2>
+            <ul>
+                <li v-for="device in devices" :key="device.shellyID" @click="selectedDevice = device">
+                    <span class="dashboard__device-dot" :class="device.online ? 'is-online' : 'is-offline'" />
+                    <span>{{ device.name || device.shellyID }}</span>
+                    <i class="fas fa-chevron-right" />
+                </li>
+            </ul>
+        </section>
+
+        <DeviceDetailPopup :device="selectedDevice" @close="selectedDevice = null" />
     </div>
 </template>
 
@@ -58,9 +71,10 @@
 import type {HostDevice} from '@host';
 import EmptyState from '@shared/components/EmptyState.vue';
 import KpiTile from '@shared/components/KpiTile.vue';
-import {computed} from 'vue';
+import {computed, ref} from 'vue';
 import type {DeviceRoles} from '../composables/useDeviceRoles';
 import ClimatePanel from './ClimatePanel.vue';
+import DeviceDetailPopup from './DeviceDetailPopup.vue';
 import DoorWindowPanel from './DoorWindowPanel.vue';
 import EnergyPanel from './EnergyPanel.vue';
 
@@ -68,6 +82,8 @@ const props = defineProps<{
     devices: HostDevice[];
     roles: DeviceRoles;
 }>();
+
+const selectedDevice = ref<HostDevice | null>(null);
 
 const powerLabel = computed(() => {
     const value = props.roles.plug?.capabilities?.energy?.power_w;
@@ -143,5 +159,62 @@ const attentionItems = computed(() => {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
     gap: var(--space-4, 12px);
+}
+
+.dashboard__devices {
+    padding: var(--space-5, 16px);
+    border: 1px solid color-mix(in srgb, var(--fm-template-text) 14%, transparent);
+    border-radius: var(--radius-md, 10px);
+    background: var(--fm-template-card);
+}
+
+.dashboard__devices h2 {
+    margin: 0 0 var(--space-3, 10px);
+    font-size: 1rem;
+}
+
+.dashboard__devices ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.dashboard__devices li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 4px;
+    cursor: pointer;
+    border-bottom: 1px solid color-mix(in srgb, var(--fm-template-text) 8%, transparent);
+}
+
+.dashboard__devices li:last-child {
+    border-bottom: none;
+}
+
+.dashboard__devices li:hover {
+    background: color-mix(in srgb, var(--fm-template-text) 4%, transparent);
+}
+
+.dashboard__devices li i {
+    margin-left: auto;
+    opacity: 0.4;
+    font-size: 0.75rem;
+}
+
+.dashboard__device-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.dashboard__device-dot.is-online {
+    background: #18a999;
+}
+
+.dashboard__device-dot.is-offline {
+    background: #9ca3af;
 }
 </style>
