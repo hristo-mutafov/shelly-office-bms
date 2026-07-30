@@ -70,7 +70,7 @@ const roles = useDeviceRoles(computed(() => devices.data.value));
 const nav = useTemplateNav();
 
 const selectedFloorName = computed(
-    () => locationsState.data.value.find((l) => l.id === nav.floorId.value)?.name ?? 'Floor'
+    () => locationsState.data.value.find((l) => l.id === nav.floorId.value)?.name || 'Floor'
 );
 
 onMounted(() => {

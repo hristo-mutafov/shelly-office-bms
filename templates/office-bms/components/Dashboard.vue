@@ -119,10 +119,10 @@ const attentionItems = computed(() => {
     const items: string[] = [];
     for (const device of props.devices) {
         if (device.capabilities?.door?.open) {
-            items.push(`${device.name ?? device.shellyID} is open`);
+            items.push(`${device.name || device.shellyID} is open`);
         }
         if (!device.online) {
-            items.push(`${device.name ?? device.shellyID} is offline`);
+            items.push(`${device.name || device.shellyID} is offline`);
         }
     }
     if (props.roles.doorWindowSensorIsMock && props.roles.doorWindowSensor.capabilities?.door?.open) {

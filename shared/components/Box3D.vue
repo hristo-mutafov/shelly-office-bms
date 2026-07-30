@@ -38,48 +38,54 @@ function shade(hex: string, amount: number): string {
 
 const dim = computed(() => (props.lit ? 0 : -70));
 
-// Box origin is its own center. All six faces are positioned at (0,0) and
-// rotated/pushed outward along their own local Z axis — the standard CSS
-// cube technique: every face shares one preserve-3d parent so the rotations
-// compose into a real cuboid instead of six flat, unrelated planes.
+// x/z place the box's horizontal center; y places its BOTTOM edge (so
+// floors can stack with y = index * floorHeight). Each face below is
+// centered on the box's own local origin (0,0,0) *before* its rotation —
+// left:50%/top:50% + negative margins of its own half-extents — so every
+// face's default transform-origin (its own center) already sits exactly
+// at the shared origin. Only then does translateZ(halfOfThatAxis) push it
+// out to the correct plane; skipping the pre-centering step (each face
+// anchored at its own top-left corner instead) is what produced the
+// misaligned side walls before this rewrite.
 const outerStyle = computed(() => ({
-    width: `${props.width}px`,
-    height: `${props.height}px`,
-    transform: `translate3d(${props.x - props.width / 2}px, ${-props.y - props.height / 2}px, ${props.z - props.depth / 2}px)`
+    transform: `translate3d(${props.x}px, ${-(props.y + props.height / 2)}px, ${props.z}px)`
 }));
 
+function centeredFace(w: number, h: number) {
+    return {
+        width: `${w}px`,
+        height: `${h}px`,
+        left: '50%',
+        top: '50%',
+        marginLeft: `${-w / 2}px`,
+        marginTop: `${-h / 2}px`
+    };
+}
+
 const topStyle = computed(() => ({
-    width: `${props.width}px`,
-    height: `${props.depth}px`,
+    ...centeredFace(props.width, props.depth),
     background: shade(props.color, 45 + dim.value),
-    transform: `rotateX(90deg) translateZ(${props.height / 2}px)`,
-    transformOrigin: 'center'
+    transform: `rotateX(90deg) translateZ(${props.height / 2}px)`
 }));
 const frontStyle = computed(() => ({
-    width: `${props.width}px`,
-    height: `${props.height}px`,
+    ...centeredFace(props.width, props.height),
     background: shade(props.color, 10 + dim.value),
     transform: `translateZ(${props.depth / 2}px)`
 }));
 const backStyle = computed(() => ({
-    width: `${props.width}px`,
-    height: `${props.height}px`,
+    ...centeredFace(props.width, props.height),
     background: shade(props.color, -15 + dim.value),
     transform: `rotateY(180deg) translateZ(${props.depth / 2}px)`
 }));
 const rightStyle = computed(() => ({
-    width: `${props.depth}px`,
-    height: `${props.height}px`,
+    ...centeredFace(props.depth, props.height),
     background: shade(props.color, -25 + dim.value),
-    transform: `rotateY(90deg) translateZ(${props.width / 2}px)`,
-    transformOrigin: 'center'
+    transform: `rotateY(90deg) translateZ(${props.width / 2}px)`
 }));
 const leftStyle = computed(() => ({
-    width: `${props.depth}px`,
-    height: `${props.height}px`,
+    ...centeredFace(props.depth, props.height),
     background: shade(props.color, -35 + dim.value),
-    transform: `rotateY(-90deg) translateZ(${props.width / 2}px)`,
-    transformOrigin: 'center'
+    transform: `rotateY(-90deg) translateZ(${props.width / 2}px)`
 }));
 </script>
 
@@ -93,8 +99,6 @@ const leftStyle = computed(() => ({
 
 .box3d__face {
     position: absolute;
-    top: 0;
-    left: 0;
     transition: background 0.4s ease;
 }
 

@@ -70,7 +70,7 @@ const events = computed<FeedEvent[]>(() => {
             ts: p.ts as string,
             kind: 'relay',
             icon: p.value ? 'fas fa-plug-circle-check' : 'fas fa-plug-circle-xmark',
-            description: `${props.plug?.name ?? 'Plug'} turned ${p.value ? 'on' : 'off'}`,
+            description: `${props.plug?.name || 'Plug'} turned ${p.value ? 'on' : 'off'}`,
             isMock: false
         }));
 
