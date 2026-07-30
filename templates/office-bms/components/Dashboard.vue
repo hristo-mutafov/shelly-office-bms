@@ -122,7 +122,9 @@ const humidityLabel = computed(() => {
 });
 
 const openCount = computed(() => {
-    const realOpen = props.devices.filter((d) => d.capabilities?.door?.open).length;
+    // Gate on .online — an offline sensor's last-known "open" reading is
+    // stale, not a live alert.
+    const realOpen = props.devices.filter((d) => d.online && d.capabilities?.door?.open).length;
     const mockOpen =
         props.roles.doorWindowSensorIsMock && props.roles.doorWindowSensor.capabilities?.door?.open ? 1 : 0;
     return realOpen + mockOpen;
@@ -133,7 +135,7 @@ const onlineLabel = computed(() => `${onlineCount.value}/${props.devices.length}
 const attentionItems = computed(() => {
     const items: string[] = [];
     for (const device of props.devices) {
-        if (device.capabilities?.door?.open) {
+        if (device.online && device.capabilities?.door?.open) {
             items.push(`${device.name || device.shellyID} is open`);
         }
         if (!device.online) {
@@ -143,7 +145,9 @@ const attentionItems = computed(() => {
     if (props.roles.doorWindowSensorIsMock && props.roles.doorWindowSensor.capabilities?.door?.open) {
         items.push(`${props.roles.doorWindowSensor.name} is open (mock)`);
     }
-    const temp = props.roles.climateSensor.capabilities?.temperature?.temperature_c;
+    const temp = props.roles.climateSensor.online
+        ? props.roles.climateSensor.capabilities?.temperature?.temperature_c
+        : null;
     if (temp != null && (temp < 16 || temp > 28)) {
         const suffix = props.roles.climateSensorIsMock ? ' (mock)' : '';
         items.push(`Temperature is out of comfort range (${temp.toFixed(1)}°C)${suffix}`);

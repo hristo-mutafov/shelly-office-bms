@@ -17,8 +17,8 @@
         </div>
 
         <EmptyState
-            v-if="!isMock && !temperatureField"
-            message="24h history will appear once the sensor's field name is confirmed against live data."
+            v-if="!points.length"
+            message="No temperature history available for this sensor yet."
             icon="fas fa-temperature-half"
         />
         <EChart v-else :option="chartOption" height="220px" />
@@ -32,33 +32,42 @@ import EmptyState from '@shared/components/EmptyState.vue';
 import MockBadge from '@shared/components/MockBadge.vue';
 import {computed, ref} from 'vue';
 import {useStatusHistory} from '../composables/useStatusHistory';
+import {findBthomeField} from '../lib/bthome';
+import {formatChartBuckets} from '../lib/formatChartTime';
 import {mockClimateHistory} from '../lib/mockClimateDoorWindow';
 
 const props = defineProps<{
     device: HostDevice;
     isMock?: boolean;
-    /** device.status field for temperature history, e.g. 'bthomesensor:200.value'. */
-    temperatureField?: string;
-    humidityField?: string;
 }>();
 
+// device.list keeps the last known reading even after a sensor drops
+// offline — gate on .online so a stale snapshot isn't shown as current,
+// same fix as the Dashboard power KPI.
 const temperatureLabel = computed(() => {
-    const value = props.device.capabilities?.temperature?.temperature_c;
+    const value = props.device.online ? props.device.capabilities?.temperature?.temperature_c : null;
     return value != null ? value.toFixed(1) : '—';
 });
 const humidityLabel = computed(() => {
-    const value = props.device.capabilities?.temperature?.humidity_pct;
+    const value = props.device.online ? props.device.capabilities?.temperature?.humidity_pct : null;
     return value != null ? value.toFixed(0) : '—';
 });
 
 const now = new Date();
 const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
+// The BTHome component index (bthomesensor:<n>) is assigned per-device at
+// pairing time, so it can't be hardcoded — discover it from the device's own
+// status/settings instead, the same way the backend's capability mapper
+// does. This is what lets the chart work on real hardware we've never
+// tested, instead of needing a guessed field name baked in ahead of time.
+const temperatureField = props.isMock ? null : findBthomeField(props.device, ['temperature']);
+
 const historyOptions = ref(
-    !props.isMock && props.temperatureField
+    temperatureField
         ? {
               shellyID: props.device.shellyID,
-              field: props.temperatureField,
+              field: temperatureField,
               from: dayAgo.toISOString(),
               to: now.toISOString()
           }
@@ -72,7 +81,7 @@ const chartOption = computed(() => ({
     grid: {left: 40, right: 16, top: 16, bottom: 28},
     xAxis: {
         type: 'category',
-        data: points.value.map((p) => p.bucket ?? ''),
+        data: formatChartBuckets(points.value.map((p) => p.bucket)),
         axisLabel: {fontSize: 10}
     },
     yAxis: {type: 'value', name: '°C'},

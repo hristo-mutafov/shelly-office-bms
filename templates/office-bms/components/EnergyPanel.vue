@@ -30,6 +30,7 @@ import {metrics, useLiveMetric} from '@host';
 import EChart from '@shared/components/EChart.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 import {computed, onMounted, ref} from 'vue';
+import {formatChartBuckets} from '../lib/formatChartTime';
 
 const props = defineProps<{deviceId: string}>();
 
@@ -101,7 +102,7 @@ const chartOption = computed(() => ({
     grid: {left: 40, right: 16, top: 16, bottom: 28},
     xAxis: {
         type: 'category',
-        data: historyPoints.value.map((p) => p.bucket),
+        data: formatChartBuckets(historyPoints.value.map((p) => p.bucket)),
         axisLabel: {fontSize: 10}
     },
     yAxis: {type: 'value', name: 'W'},

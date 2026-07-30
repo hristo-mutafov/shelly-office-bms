@@ -29,7 +29,7 @@
                         :key="marker.device.shellyID"
                         type="button"
                         class="floor-scheme__marker"
-                        :class="{'is-online': marker.device.online, 'is-offline': !marker.device.online, 'has-alert': marker.device.capabilities?.door?.open}"
+                        :class="{'is-online': marker.device.online, 'is-offline': !marker.device.online, 'has-alert': marker.device.online && marker.device.capabilities?.door?.open}"
                         :style="{left: `${marker.placement.x * 100}%`, top: `${marker.placement.y * 100}%`}"
                         :title="marker.device.name || marker.device.shellyID"
                         @click="selectedShellyId = marker.device.shellyID"

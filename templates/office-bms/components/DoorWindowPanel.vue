@@ -32,7 +32,12 @@ const props = defineProps<{
     isMock?: boolean;
 }>();
 
-const isOpen = computed(() => props.device.capabilities?.door?.open ?? null);
+// device.list keeps the last known reading even after a sensor drops
+// offline — gate on .online so a stale open/closed snapshot isn't shown as
+// current, same fix as the Dashboard power KPI.
+const isOpen = computed(() =>
+    props.device.online ? (props.device.capabilities?.door?.open ?? null) : null
+);
 
 const now = new Date();
 const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
