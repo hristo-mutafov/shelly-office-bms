@@ -1,16 +1,22 @@
 <template>
     <div class="office-bms">
         <header class="office-bms__header">
-            <div>
-                <p class="office-bms__eyebrow">{{ customization.clientName || 'Office BMS' }}</p>
-                <h1>{{ customization.title || buildingName }}</h1>
+            <div class="office-bms__brand">
+                <img v-if="customization.logoUrl" :src="customization.logoUrl" alt="" class="office-bms__logo" />
+                <div>
+                    <p class="office-bms__eyebrow">{{ customization.clientName || 'Office BMS' }}</p>
+                    <h1>{{ customization.title || buildingName }}</h1>
+                </div>
             </div>
             <nav class="office-bms__nav">
                 <button type="button" :class="{active: nav.view.value === 'dashboard'}" @click="nav.goToDashboard()">
                     Dashboard
                 </button>
-                <button type="button" :class="{active: nav.view.value !== 'dashboard'}" @click="nav.goToBuilding()">
+                <button type="button" :class="{active: nav.view.value === 'building' || nav.view.value === 'floor'}" @click="nav.goToBuilding()">
                     Building
+                </button>
+                <button type="button" :class="{active: nav.view.value === 'events'}" @click="nav.goToEvents()">
+                    Events
                 </button>
             </nav>
             <div class="office-bms__user">
@@ -34,6 +40,12 @@
                 :floor-name="selectedFloorName"
                 :devices="devices.data.value"
             />
+            <EventsPanel
+                v-else-if="nav.view.value === 'events'"
+                :plug="roles.plug"
+                :door-window-sensor="roles.doorWindowSensor"
+                :door-window-sensor-is-mock="roles.doorWindowSensorIsMock"
+            />
         </main>
     </div>
 </template>
@@ -43,6 +55,7 @@ import {useCurrentUser, useCustomization, useDevices, useLocations} from '@host'
 import {computed, onMounted} from 'vue';
 import BuildingView from './components/BuildingView.vue';
 import Dashboard from './components/Dashboard.vue';
+import EventsPanel from './components/EventsPanel.vue';
 import FloorScheme from './components/FloorScheme.vue';
 import {useDeviceRoles} from './composables/useDeviceRoles';
 import {useTemplateNav} from './composables/useTemplateNav';
@@ -81,6 +94,18 @@ onMounted(() => {
     gap: var(--space-6);
     max-width: 1200px;
     margin: 0 auto 20px;
+}
+
+.office-bms__brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.office-bms__logo {
+    height: 36px;
+    width: auto;
+    object-fit: contain;
 }
 
 .office-bms__eyebrow,

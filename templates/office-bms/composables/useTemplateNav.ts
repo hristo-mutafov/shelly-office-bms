@@ -1,7 +1,7 @@
 import {useRoute, useRouter} from 'vue-router';
 import {computed} from 'vue';
 
-export type TemplateView = 'dashboard' | 'building' | 'floor';
+export type TemplateView = 'dashboard' | 'building' | 'floor' | 'events';
 
 // Reads/writes query params on FM's existing router instead of registering
 // new routes — FM's own route table only has a catch-all pointing at
@@ -13,7 +13,7 @@ export function useTemplateNav() {
 
     const view = computed<TemplateView>(() => {
         const raw = route.query.view;
-        if (raw === 'building' || raw === 'floor') return raw;
+        if (raw === 'building' || raw === 'floor' || raw === 'events') return raw;
         return 'dashboard';
     });
 
@@ -35,5 +35,9 @@ export function useTemplateNav() {
         void router.replace({query: {view: 'floor', floor: String(id)}});
     }
 
-    return {view, floorId, goToDashboard, goToBuilding, goToFloor};
+    function goToEvents(): void {
+        void router.replace({query: {view: 'events'}});
+    }
+
+    return {view, floorId, goToDashboard, goToBuilding, goToFloor, goToEvents};
 }
