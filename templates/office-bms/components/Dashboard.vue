@@ -63,7 +63,7 @@
         <section v-if="devices.length" class="dashboard__devices">
             <h2>Devices</h2>
             <ul>
-                <li v-for="device in devices" :key="device.shellyID" @click="selectedDevice = device">
+                <li v-for="device in devices" :key="device.shellyID" @click="selectedShellyId = device.shellyID">
                     <span class="dashboard__device-dot" :class="device.online ? 'is-online' : 'is-offline'" />
                     <span>{{ device.name || device.shellyID }}</span>
                     <i class="fas fa-chevron-right" />
@@ -71,7 +71,7 @@
             </ul>
         </section>
 
-        <DeviceDetailPopup :device="selectedDevice" @close="selectedDevice = null" />
+        <DeviceDetailPopup :device="selectedDevice" @close="selectedShellyId = null" />
     </div>
 </template>
 
@@ -91,7 +91,15 @@ const props = defineProps<{
     roles: DeviceRoles;
 }>();
 
-const selectedDevice = ref<HostDevice | null>(null);
+// Track the selected device by id, not by object reference — devices.data
+// is a computed that produces fresh device objects on every store update
+// (e.g. a live status push after switching relay state), so holding onto a
+// snapshot reference would freeze the popup on whatever state it had at
+// click time. Re-deriving it live keeps the popup in sync automatically.
+const selectedShellyId = ref<string | null>(null);
+const selectedDevice = computed(
+    () => props.devices.find((d) => d.shellyID === selectedShellyId.value) ?? null
+);
 
 const powerLabel = computed(() => {
     const value = props.roles.plug?.capabilities?.energy?.power_w;

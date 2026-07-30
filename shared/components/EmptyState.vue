@@ -20,7 +20,10 @@ defineProps<{
     justify-content: center;
     gap: var(--space-2, 8px);
     padding: var(--space-6, 24px);
-    color: color-mix(in srgb, var(--fm-template-text) 55%, transparent);
+    background: transparent;
+    border: 1px solid black;
+    border-radius: var(--radius-md, 10px);
+    color: black;
     text-align: center;
 }
 

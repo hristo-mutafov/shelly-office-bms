@@ -32,7 +32,7 @@
                         :class="{'is-online': marker.device.online, 'is-offline': !marker.device.online, 'has-alert': marker.device.capabilities?.door?.open}"
                         :style="{left: `${marker.placement.x * 100}%`, top: `${marker.placement.y * 100}%`}"
                         :title="marker.device.name || marker.device.shellyID"
-                        @click="selectedDevice = marker.device"
+                        @click="selectedShellyId = marker.device.shellyID"
                     >
                         <i :class="iconFor(marker.device)" />
                     </button>
@@ -63,7 +63,7 @@
             </aside>
         </div>
 
-        <DeviceDetailPopup :device="selectedDevice" @close="selectedDevice = null" />
+        <DeviceDetailPopup :device="selectedDevice" @close="selectedShellyId = null" />
     </div>
 </template>
 
@@ -86,7 +86,11 @@ const {viz, setFloorPlan, setDevicePlacement} = useFloorGroup(
     toRef(props, 'floorName')
 );
 
-const selectedDevice = ref<HostDevice | null>(null);
+// See Dashboard.vue for why this tracks id, not object reference.
+const selectedShellyId = ref<string | null>(null);
+const selectedDevice = computed(
+    () => props.devices.find((d) => d.shellyID === selectedShellyId.value) ?? null
+);
 const fileInput = ref<HTMLInputElement | null>(null);
 const canvasEl = ref<HTMLDivElement | null>(null);
 const uploading = ref(false);
