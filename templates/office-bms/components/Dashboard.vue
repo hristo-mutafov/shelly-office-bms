@@ -101,16 +101,23 @@ const selectedDevice = computed(
     () => props.devices.find((d) => d.shellyID === selectedShellyId.value) ?? null
 );
 
+// device.list keeps the *last known* reading even after a device goes
+// offline (nothing resets it to 0), so an unplugged plug would otherwise
+// keep showing its last real wattage forever. Gate on .online so a stale
+// snapshot doesn't get shown as if it were current.
 const powerLabel = computed(() => {
-    const value = props.roles.plug?.capabilities?.energy?.power_w;
+    const plug = props.roles.plug;
+    const value = plug?.online ? plug.capabilities?.energy?.power_w : null;
     return value != null ? value.toFixed(0) : '—';
 });
 const temperatureLabel = computed(() => {
-    const value = props.roles.climateSensor?.capabilities?.temperature?.temperature_c;
+    const sensor = props.roles.climateSensor;
+    const value = sensor.online ? sensor.capabilities?.temperature?.temperature_c : null;
     return value != null ? value.toFixed(1) : '—';
 });
 const humidityLabel = computed(() => {
-    const value = props.roles.climateSensor?.capabilities?.temperature?.humidity_pct;
+    const sensor = props.roles.climateSensor;
+    const value = sensor.online ? sensor.capabilities?.temperature?.humidity_pct : null;
     return value != null ? value.toFixed(0) : '—';
 });
 

@@ -8,12 +8,7 @@
             </span>
         </header>
 
-        <EmptyState
-            v-if="!isMock && !field"
-            message="24h event history will appear once the sensor's field name is confirmed against live data."
-            icon="fas fa-door-open"
-        />
-        <ul v-else-if="events.length" class="dw-panel__events">
+        <ul v-if="events.length" class="dw-panel__events">
             <li v-for="(event, i) in events" :key="i">
                 <span class="dw-panel__event-dot" :class="event.value ? 'is-open' : 'is-closed'" />
                 <span>{{ event.value ? 'Opened' : 'Closed' }}</span>
@@ -29,14 +24,12 @@ import type {HostDevice} from '@host';
 import EmptyState from '@shared/components/EmptyState.vue';
 import MockBadge from '@shared/components/MockBadge.vue';
 import {computed, ref} from 'vue';
-import {useStatusTimeline} from '../composables/useStatusTimeline';
+import {useDeviceEvents} from '../composables/useDeviceEvents';
 import {mockDoorWindowHistory} from '../lib/mockClimateDoorWindow';
 
 const props = defineProps<{
     device: HostDevice;
     isMock?: boolean;
-    /** device.status field for open/close events, e.g. 'bthomesensor:201.value'. */
-    field?: string;
 }>();
 
 const isOpen = computed(() => props.device.capabilities?.door?.open ?? null);
@@ -44,23 +37,31 @@ const isOpen = computed(() => props.device.capabilities?.door?.open ?? null);
 const now = new Date();
 const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-const timelineOptions = ref(
-    !props.isMock && props.field
+// device.status can't hold this (numeric-only column) — read the discrete
+// open/close transitions from the device-events journal instead. No
+// component filter: a BLU door/window sensor's exact component key isn't
+// confirmed yet, so this takes whatever boolean-valued state change it
+// reports rather than guessing a specific field name.
+const eventOptions = ref(
+    !props.isMock
         ? {
-              shellyID: props.device.shellyID,
-              field: props.field,
+              shellyIds: [props.device.shellyID],
               from: dayAgo.toISOString(),
               to: now.toISOString()
           }
         : null
 );
+const {events: liveEvents} = useDeviceEvents(eventOptions);
 
-const {points: liveTimelinePoints} = useStatusTimeline(timelineOptions);
 const events = computed(() =>
-    (props.isMock ? mockDoorWindowHistory() : liveTimelinePoints.value)
-        .filter((p) => p.ts)
-        .map((p) => ({ts: p.ts as string, value: Boolean(p.value)}))
-        .reverse()
+    (props.isMock
+        ? mockDoorWindowHistory()
+              .filter((p) => p.ts)
+              .map((p) => ({ts: p.ts as string, value: Boolean(p.value)}))
+        : liveEvents.value
+              .filter((e) => typeof e.next === 'boolean')
+              .map((e) => ({ts: e.ts, value: e.next as boolean}))
+    ).reverse()
 );
 
 function formatTime(ts: string): string {

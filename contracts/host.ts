@@ -48,3 +48,18 @@ export type StatusTimelinePoint = {
     value?: number | null;
     prevValue?: number | null;
 };
+
+// device.status only stores NUMERIC telemetry (power, voltage, temperature,
+// energy counters) — confirmed by querying it directly, boolean fields like
+// switch:0.output are simply absent. Discrete state changes (relay on/off,
+// door open/closed) live in a separate append-only journal instead, read via
+// deviceevents.query (another raw-escape-hatch RPC, no curated @host wrapper).
+export type DeviceChangeEvent = {
+    ts: string;
+    shellyId: string;
+    component: string;
+    field: string;
+    prev?: unknown;
+    next?: unknown;
+    kind: 'state_change' | 'event' | 'config';
+};

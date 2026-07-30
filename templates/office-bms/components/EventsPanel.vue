@@ -19,7 +19,7 @@ import type {HostDevice} from '@host';
 import EmptyState from '@shared/components/EmptyState.vue';
 import MockBadge from '@shared/components/MockBadge.vue';
 import {computed, ref} from 'vue';
-import {useStatusTimeline} from '../composables/useStatusTimeline';
+import {useDeviceEvents} from '../composables/useDeviceEvents';
 import {mockDoorWindowHistory} from '../lib/mockClimateDoorWindow';
 
 const props = defineProps<{
@@ -39,51 +39,43 @@ type FeedEvent = {
 const now = new Date();
 const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-const relayTimelineOptions = ref(
+// device.status only stores numeric telemetry — relay on/off and door
+// open/closed are discrete state changes, which live in the separate
+// device-events journal instead (see useDeviceEvents for why).
+const relayEventOptions = ref(
     props.plug
         ? {
-              shellyID: props.plug.shellyID,
-              field: 'switch:0.output',
+              shellyIds: [props.plug.shellyID],
+              component: 'switch:0',
               from: dayAgo.toISOString(),
               to: now.toISOString()
           }
         : null
 );
-const {points: relayPoints} = useStatusTimeline(relayTimelineOptions);
-
-const doorTimelineOptions = ref(
-    !props.doorWindowSensorIsMock
-        ? {
-              shellyID: props.doorWindowSensor.shellyID,
-              field: 'bthomesensor:0.value',
-              from: dayAgo.toISOString(),
-              to: now.toISOString()
-          }
-        : null
-);
-const {points: liveDoorPoints} = useStatusTimeline(doorTimelineOptions);
+const {events: relayRawEvents} = useDeviceEvents(relayEventOptions);
 
 const events = computed<FeedEvent[]>(() => {
-    const relayEvents: FeedEvent[] = relayPoints.value
-        .filter((p) => p.ts)
-        .map((p) => ({
-            ts: p.ts as string,
+    const relayEvents: FeedEvent[] = relayRawEvents.value
+        .filter((e) => e.field === 'output')
+        .map((e) => ({
+            ts: e.ts,
             kind: 'relay',
-            icon: p.value ? 'fas fa-plug-circle-check' : 'fas fa-plug-circle-xmark',
-            description: `${props.plug?.name || 'Plug'} turned ${p.value ? 'on' : 'off'}`,
+            icon: e.next ? 'fas fa-plug-circle-check' : 'fas fa-plug-circle-xmark',
+            description: `${props.plug?.name || 'Plug'} turned ${e.next ? 'on' : 'off'}`,
             isMock: false
         }));
 
-    const doorSource = props.doorWindowSensorIsMock ? mockDoorWindowHistory() : liveDoorPoints.value;
-    const doorEvents: FeedEvent[] = doorSource
-        .filter((p) => p.ts)
-        .map((p) => ({
-            ts: p.ts as string,
-            kind: 'door',
-            icon: p.value ? 'fas fa-door-open' : 'fas fa-door-closed',
-            description: `${props.doorWindowSensor.name} ${p.value ? 'opened' : 'closed'}`,
-            isMock: props.doorWindowSensorIsMock
-        }));
+    const doorEvents: FeedEvent[] = props.doorWindowSensorIsMock
+        ? mockDoorWindowHistory()
+              .filter((p) => p.ts)
+              .map((p) => ({
+                  ts: p.ts as string,
+                  kind: 'door' as const,
+                  icon: p.value ? 'fas fa-door-open' : 'fas fa-door-closed',
+                  description: `${props.doorWindowSensor.name} ${p.value ? 'opened' : 'closed'}`,
+                  isMock: true
+              }))
+        : [];
 
     return [...relayEvents, ...doorEvents].sort((a, b) => b.ts.localeCompare(a.ts));
 });
