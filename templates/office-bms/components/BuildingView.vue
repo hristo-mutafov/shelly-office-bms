@@ -32,21 +32,44 @@
                         :depth="boxDepth"
                         :height="floorHeight"
                         :y="i * (floorHeight + floorGap)"
-                        :color="floorColor"
+                        :color="floorStatuses[floor.id]?.hasAlert ? alertColor : floorColor"
                         :lit="isDay"
                     >
-                        <button type="button" class="building-view__floor-label" @click="onFloorClick(floor.id)">
-                            {{ floor.name }}
-                        </button>
+                        <div class="building-view__floor-content">
+                            <button type="button" class="building-view__floor-label" @click="onFloorClick(floor.id)">
+                                {{ floor.name }}
+                            </button>
+                            <span
+                                class="building-view__floor-badge"
+                                :class="{'has-alert': floorStatuses[floor.id]?.hasAlert}"
+                            >
+                                {{ badgeText(floorStatuses[floor.id]) }}
+                            </span>
+                        </div>
                     </Box3D>
+                    <RoofPrism
+                        v-if="floors.length"
+                        :width="boxWidth + roofOverhang * 2"
+                        :depth="boxDepth + roofOverhang * 2"
+                        :roof-height="roofHeight"
+                        :y="floors.length * (floorHeight + floorGap) - floorGap"
+                        :color="roofColor"
+                        :lit="isDay"
+                    />
                 </div>
             </div>
-            <p class="building-view__hint">Drag to rotate, scroll to zoom, click a floor to open it.</p>
+            <p class="building-view__hint">
+                Drag to rotate, scroll to zoom, click a floor to open it. Red floors have an offline device or an
+                open door/window.
+            </p>
 
             <ul class="building-view__list">
                 <li v-for="floor in floors" :key="floor.id" @click="onFloorClick(floor.id)">
                     <i class="fas fa-layer-group" />
                     <span>{{ floor.name }}</span>
+                    <span class="building-view__list-badge" :class="{'has-alert': floorStatuses[floor.id]?.hasAlert}">
+                        {{ badgeText(floorStatuses[floor.id]) }}
+                    </span>
                     <i class="fas fa-chevron-right building-view__chevron" />
                 </li>
             </ul>
@@ -55,11 +78,14 @@
 </template>
 
 <script setup lang="ts">
-import {useCustomization, useLocations} from '@host';
+import type {HostDevice} from '@host';
+import {groups, useCustomization, useLocations} from '@host';
 import Box3D from '@shared/components/Box3D.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 import {computed, onMounted, ref} from 'vue';
+import RoofPrism from './RoofPrism.vue';
 
+const props = defineProps<{devices: HostDevice[]}>();
 const emit = defineEmits<{'select-floor': [id: number]}>();
 
 const locationsState = useLocations();
@@ -75,13 +101,70 @@ const floors = computed(() =>
         .sort((a, b) => a.name.localeCompare(b.name))
 );
 
-onMounted(() => void locationsState.refresh());
+// Each floor's placed devices live in its own shadow group (see
+// useFloorGroup.ts) — load all groups once and index by floorLocationId so
+// the building view can show a status summary per floor without visiting
+// every floor scheme page first.
+const shadowGroups = ref<{metadata?: Record<string, unknown>}[]>([]);
+
+onMounted(() => {
+    void locationsState.refresh();
+    void groups.list({}).then((list) => {
+        shadowGroups.value = list;
+    });
+});
+
+const floorDeviceIds = computed<Record<number, Set<string>>>(() => {
+    const map: Record<number, Set<string>> = {};
+    for (const group of shadowGroups.value) {
+        const meta = group.metadata ?? {};
+        const floorLocationId = meta.floorLocationId;
+        if (typeof floorLocationId !== 'number') continue;
+        const viz = (meta.viz ?? {}) as {devicePlacements?: Record<string, unknown>};
+        map[floorLocationId] = new Set(Object.keys(viz.devicePlacements ?? {}));
+    }
+    return map;
+});
+
+type FloorStatus = {deviceCount: number; offlineCount: number; openCount: number; hasAlert: boolean};
+
+const floorStatuses = computed<Record<number, FloorStatus>>(() => {
+    const result: Record<number, FloorStatus> = {};
+    for (const floor of floors.value) {
+        const ids = floorDeviceIds.value[floor.id];
+        const list = ids ? props.devices.filter((d) => ids.has(d.shellyID)) : [];
+        const offlineCount = list.filter((d) => !d.online).length;
+        // Gate the "open" alert on .online — an offline sensor's last-known
+        // reading is stale, same rule as everywhere else in this template.
+        const openCount = list.filter((d) => d.online && d.capabilities?.door?.open).length;
+        result[floor.id] = {
+            deviceCount: list.length,
+            offlineCount,
+            openCount,
+            hasAlert: offlineCount > 0 || openCount > 0
+        };
+    }
+    return result;
+});
+
+function badgeText(status?: FloorStatus): string {
+    if (!status || status.deviceCount === 0) return 'No devices placed';
+    const parts: string[] = [];
+    if (status.offlineCount) parts.push(`${status.offlineCount} offline`);
+    if (status.openCount) parts.push(`${status.openCount} open`);
+    const count = `${status.deviceCount} device${status.deviceCount === 1 ? '' : 's'}`;
+    return parts.length ? `${count} · ${parts.join(', ')}` : `${count} · all clear`;
+}
 
 const boxWidth = 220;
 const boxDepth = 150;
 const floorHeight = 64;
 const floorGap = 6;
+const roofHeight = 56;
+const roofOverhang = 16;
 const floorColor = computed(() => theme.value?.accent || '#3b6fd6');
+const alertColor = '#c0392b';
+const roofColor = '#7a3b2e';
 
 const isDay = ref(true);
 const yaw = ref(-35);
@@ -213,6 +296,13 @@ function onFloorClick(id: number): void {
     transform: rotateX(90deg) translateZ(-4px);
 }
 
+.building-view__floor-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
 .building-view__floor-label {
     background: rgba(0, 0, 0, 0.35);
     color: white;
@@ -222,6 +312,32 @@ function onFloorClick(id: number): void {
     font-size: 0.75rem;
     font-weight: 700;
     cursor: pointer;
+}
+
+.building-view__floor-badge {
+    background: rgba(0, 0, 0, 0.35);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.62rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.building-view__floor-badge.has-alert {
+    background: rgba(192, 57, 43, 0.85);
+}
+
+.building-view__list-badge {
+    font-size: 0.72rem;
+    opacity: 0.65;
+    margin-left: auto;
+}
+
+.building-view__list-badge.has-alert {
+    color: #c0392b;
+    opacity: 1;
+    font-weight: 700;
 }
 
 .building-view__hint {

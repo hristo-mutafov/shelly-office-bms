@@ -32,7 +32,11 @@
 
         <main class="office-bms__content">
             <Dashboard v-if="nav.view.value === 'dashboard'" :devices="devices.data.value" :roles="roles" />
-            <BuildingView v-else-if="nav.view.value === 'building'" @select-floor="nav.goToFloor" />
+            <BuildingView
+                v-else-if="nav.view.value === 'building'"
+                :devices="devices.data.value"
+                @select-floor="nav.goToFloor"
+            />
             <FloorScheme
                 v-else-if="nav.view.value === 'floor' && nav.floorId.value"
                 :key="nav.floorId.value"
