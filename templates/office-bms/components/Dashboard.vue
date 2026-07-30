@@ -42,13 +42,21 @@
 
         <section class="dashboard__panels">
             <EnergyPanel v-if="roles.plug" :key="roles.plug.shellyID" :device-id="roles.plug.shellyID" />
-            <ClimatePanel v-if="roles.climateSensor" :key="roles.climateSensor.shellyID" :device="roles.climateSensor" />
-            <DoorWindowPanel v-if="roles.doorWindowSensor" :key="roles.doorWindowSensor.shellyID" :device="roles.doorWindowSensor" />
+            <ClimatePanel
+                :key="roles.climateSensor.shellyID"
+                :device="roles.climateSensor"
+                :is-mock="roles.climateSensorIsMock"
+            />
+            <DoorWindowPanel
+                :key="roles.doorWindowSensor.shellyID"
+                :device="roles.doorWindowSensor"
+                :is-mock="roles.doorWindowSensorIsMock"
+            />
         </section>
 
         <EmptyState
-            v-if="!roles.plug && !roles.climateSensor && !roles.doorWindowSensor"
-            message="No devices onboarded yet — approve them in FM's Waiting Room to see live data here."
+            v-if="!roles.plug"
+            message="No plug onboarded yet — approve it in FM's Waiting Room to see live energy data here."
             icon="fas fa-plug"
         />
 
@@ -98,9 +106,12 @@ const humidityLabel = computed(() => {
     return value != null ? value.toFixed(0) : '—';
 });
 
-const openCount = computed(
-    () => props.devices.filter((d) => d.capabilities?.door?.open).length
-);
+const openCount = computed(() => {
+    const realOpen = props.devices.filter((d) => d.capabilities?.door?.open).length;
+    const mockOpen =
+        props.roles.doorWindowSensorIsMock && props.roles.doorWindowSensor.capabilities?.door?.open ? 1 : 0;
+    return realOpen + mockOpen;
+});
 const onlineCount = computed(() => props.devices.filter((d) => d.online).length);
 const onlineLabel = computed(() => `${onlineCount.value}/${props.devices.length}`);
 
@@ -114,9 +125,13 @@ const attentionItems = computed(() => {
             items.push(`${device.name ?? device.shellyID} is offline`);
         }
     }
-    const temp = props.roles.climateSensor?.capabilities?.temperature?.temperature_c;
+    if (props.roles.doorWindowSensorIsMock && props.roles.doorWindowSensor.capabilities?.door?.open) {
+        items.push(`${props.roles.doorWindowSensor.name} is open (mock)`);
+    }
+    const temp = props.roles.climateSensor.capabilities?.temperature?.temperature_c;
     if (temp != null && (temp < 16 || temp > 28)) {
-        items.push(`Temperature is out of comfort range (${temp.toFixed(1)}°C)`);
+        const suffix = props.roles.climateSensorIsMock ? ' (mock)' : '';
+        items.push(`Temperature is out of comfort range (${temp.toFixed(1)}°C)${suffix}`);
     }
     return items;
 });

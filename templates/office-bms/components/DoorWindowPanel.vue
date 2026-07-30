@@ -2,13 +2,14 @@
     <section class="dw-panel">
         <header class="dw-panel__header">
             <h2>Door / Window</h2>
+            <MockBadge v-if="isMock" />
             <span class="dw-panel__state" :class="isOpen ? 'dw-panel__state--open' : 'dw-panel__state--closed'">
                 {{ isOpen === null ? 'Unknown' : isOpen ? 'Open' : 'Closed' }}
             </span>
         </header>
 
         <EmptyState
-            v-if="!field"
+            v-if="!isMock && !field"
             message="24h event history will appear once the sensor's field name is confirmed against live data."
             icon="fas fa-door-open"
         />
@@ -26,11 +27,14 @@
 <script setup lang="ts">
 import type {HostDevice} from '@host';
 import EmptyState from '@shared/components/EmptyState.vue';
+import MockBadge from '@shared/components/MockBadge.vue';
 import {computed, ref} from 'vue';
 import {useStatusTimeline} from '../composables/useStatusTimeline';
+import {mockDoorWindowHistory} from '../lib/mockClimateDoorWindow';
 
 const props = defineProps<{
     device: HostDevice;
+    isMock?: boolean;
     /** device.status field for open/close events, e.g. 'bthomesensor:201.value'. */
     field?: string;
 }>();
@@ -41,7 +45,7 @@ const now = new Date();
 const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
 const timelineOptions = ref(
-    props.field
+    !props.isMock && props.field
         ? {
               shellyID: props.device.shellyID,
               field: props.field,
@@ -51,9 +55,9 @@ const timelineOptions = ref(
         : null
 );
 
-const {points} = useStatusTimeline(timelineOptions);
+const {points: liveTimelinePoints} = useStatusTimeline(timelineOptions);
 const events = computed(() =>
-    points.value
+    (props.isMock ? mockDoorWindowHistory() : liveTimelinePoints.value)
         .filter((p) => p.ts)
         .map((p) => ({ts: p.ts as string, value: Boolean(p.value)}))
         .reverse()

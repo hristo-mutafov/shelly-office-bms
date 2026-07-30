@@ -2,6 +2,7 @@
     <section class="climate-panel">
         <header class="climate-panel__header">
             <h2>Climate</h2>
+            <MockBadge v-if="isMock" />
         </header>
 
         <div class="climate-panel__live">
@@ -16,7 +17,7 @@
         </div>
 
         <EmptyState
-            v-if="!temperatureField"
+            v-if="!isMock && !temperatureField"
             message="24h history will appear once the sensor's field name is confirmed against live data."
             icon="fas fa-temperature-half"
         />
@@ -28,11 +29,14 @@
 import type {HostDevice} from '@host';
 import EChart from '@shared/components/EChart.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
+import MockBadge from '@shared/components/MockBadge.vue';
 import {computed, ref} from 'vue';
 import {useStatusHistory} from '../composables/useStatusHistory';
+import {mockClimateHistory} from '../lib/mockClimateDoorWindow';
 
 const props = defineProps<{
     device: HostDevice;
+    isMock?: boolean;
     /** device.status field for temperature history, e.g. 'bthomesensor:200.value'. */
     temperatureField?: string;
     humidityField?: string;
@@ -51,7 +55,7 @@ const now = new Date();
 const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
 const historyOptions = ref(
-    props.temperatureField
+    !props.isMock && props.temperatureField
         ? {
               shellyID: props.device.shellyID,
               field: props.temperatureField,
@@ -61,7 +65,8 @@ const historyOptions = ref(
         : null
 );
 
-const {points} = useStatusHistory(historyOptions);
+const {points: liveHistoryPoints} = useStatusHistory(historyOptions);
+const points = computed(() => (props.isMock ? mockClimateHistory() : liveHistoryPoints.value));
 
 const chartOption = computed(() => ({
     grid: {left: 40, right: 16, top: 16, bottom: 28},
@@ -93,6 +98,9 @@ const chartOption = computed(() => ({
 }
 
 .climate-panel__header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     margin-bottom: var(--space-3, 10px);
 }
 
