@@ -59,12 +59,12 @@ templates/office-bms/  # this template: index.vue, manifest.ts, components/, com
 
 ## Known limitations
 
-- The H&T and door/window sensors' firmware (Shelly Plug S Gen3, as their Bluetooth gateway) predates BTHome gateway support (needs firmware 1.3+, currently 1.2.2) — climate and door/window panels are built and wired against the real host RPCs but show an honest empty state until the firmware issue is resolved. See the panels' code — no rework needed once real data flows, only the exact `device.status` field names for these two sensors need confirming against live data.
+- The H&T and door/window sensors' firmware (Shelly Plug S Gen3, as their Bluetooth gateway) predates BTHome gateway support (needs firmware 1.3+, currently 1.2.2). **Shelly confirmed (2026-07-30) that mock data for these two sensors is acceptable** given the issue is outside our control — the plug's energy data is real throughout, and the two mock sensors are clearly labeled with a "Mock data" badge everywhere they appear (`shared/components/MockBadge.vue`), never blended in silently with real data. `templates/office-bms/lib/mockClimateDoorWindow.ts` generates the fallback values/history; `useDeviceRoles` swaps in real data automatically the moment the sensors are actually onboarded, no other code changes needed.
 - Optional extras (audit feed, alert rule surfaced in-template, theming beyond the customization schema) were not built given the 1-week budget — dashboard/energy/climate/door-window monitoring, 3D building, floor schemes, and device control were prioritized as the graded minimum.
 
 ## What I'd do next with more time
 
-- Wire the climate/door-window history panels to real field names once the BLU sensors are live.
+- Retire the mock climate/door-window data once the BLU sensors are onboarded — no code changes needed beyond confirming the two sensors' exact `device.status` field names for their history panels.
 - Build the optional audit/event feed and an in-template alert rule surfaced from FM.
 - Add a proper e2e smoke test that drives the built BM image end-to-end (upload a floor plan, place a device, reload, confirm persistence) rather than relying on manual verification.
 - Push `pg_stat_statements` and the other backend-audit recommendations into an actual before/after benchmark against a machine matching the real reference spec.
