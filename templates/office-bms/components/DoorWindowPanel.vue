@@ -1,7 +1,7 @@
 <template>
     <section class="dw-panel">
         <header class="dw-panel__header">
-            <h2>Door / Window</h2>
+            <h2>Door / Window <span class="dw-panel__range">· 24h</span></h2>
             <MockBadge v-if="isMock" />
             <span class="dw-panel__state" :class="isOpen ? 'dw-panel__state--open' : 'dw-panel__state--closed'">
                 {{ isOpen === null ? 'Unknown' : isOpen ? 'Open' : 'Closed' }}
@@ -92,6 +92,12 @@ function formatTime(ts: string): string {
     align-items: center;
     justify-content: space-between;
     margin-bottom: var(--space-3, 10px);
+}
+
+.dw-panel__range {
+    font-size: 0.7rem;
+    font-weight: 400;
+    opacity: 0.55;
 }
 
 .dw-panel__state {

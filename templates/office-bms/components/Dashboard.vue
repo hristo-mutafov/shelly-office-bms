@@ -15,6 +15,12 @@
                 icon="fas fa-bolt"
             />
             <KpiTile
+                label="Consumption"
+                :value="energyLabel"
+                unit="kWh"
+                icon="fas fa-plug-circle-bolt"
+            />
+            <KpiTile
                 label="Temperature"
                 :value="temperatureLabel"
                 unit="°C"
@@ -81,6 +87,7 @@ import EmptyState from '@shared/components/EmptyState.vue';
 import KpiTile from '@shared/components/KpiTile.vue';
 import {computed, ref} from 'vue';
 import type {DeviceRoles} from '../composables/useDeviceRoles';
+import {wattHoursToKwh} from '../lib/energy';
 import ClimatePanel from './ClimatePanel.vue';
 import DeviceDetailPopup from './DeviceDetailPopup.vue';
 import DoorWindowPanel from './DoorWindowPanel.vue';
@@ -109,6 +116,14 @@ const powerLabel = computed(() => {
     const plug = props.roles.plug;
     const value = plug?.online ? plug.capabilities?.energy?.power_w : null;
     return value != null ? value.toFixed(0) : '—';
+});
+// Unlike instantaneous power, total_energy_wh is a cumulative lifetime
+// counter — it doesn't go "stale" the way a wattage reading does, so it
+// stays visible even while the plug is offline (last known total is still
+// an accurate total, just not up to the second).
+const energyLabel = computed(() => {
+    const kwh = wattHoursToKwh(props.roles.plug?.capabilities?.energy?.total_energy_wh);
+    return kwh != null ? kwh.toFixed(1) : '—';
 });
 const temperatureLabel = computed(() => {
     const sensor = props.roles.climateSensor;

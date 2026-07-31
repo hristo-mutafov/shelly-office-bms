@@ -64,6 +64,7 @@ import {devices} from '@host';
 import Modal from '@shared/components/Modal.vue';
 import {ref} from 'vue';
 import {extractErrorMessage} from '../lib/errors';
+import {wattHoursToKwh} from '../lib/energy';
 
 const props = defineProps<{device: HostDevice | null; unassignable?: boolean}>();
 defineEmits<{close: []; unassign: []}>();
@@ -73,10 +74,6 @@ const switchError = ref<string | null>(null);
 
 function formatNum(value: number | null | undefined): string {
     return value != null ? value.toFixed(1) : '—';
-}
-
-function wattHoursToKwh(value: number | null | undefined): number | null {
-    return value != null ? value / 1000 : null;
 }
 
 async function toggleRelay(): Promise<void> {

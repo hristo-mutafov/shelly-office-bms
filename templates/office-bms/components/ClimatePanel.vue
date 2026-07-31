@@ -1,7 +1,7 @@
 <template>
     <section class="climate-panel">
         <header class="climate-panel__header">
-            <h2>Climate</h2>
+            <h2>Climate <span class="climate-panel__range">· 24h</span></h2>
             <MockBadge v-if="isMock" />
         </header>
 
@@ -111,6 +111,12 @@ const chartOption = computed(() => ({
     align-items: center;
     gap: 8px;
     margin-bottom: var(--space-3, 10px);
+}
+
+.climate-panel__range {
+    font-size: 0.7rem;
+    font-weight: 400;
+    opacity: 0.55;
 }
 
 .climate-panel__live {
