@@ -63,6 +63,7 @@ import type {HostDevice} from '@host';
 import {devices} from '@host';
 import Modal from '@shared/components/Modal.vue';
 import {ref} from 'vue';
+import {extractErrorMessage} from '../lib/errors';
 
 const props = defineProps<{device: HostDevice | null; unassignable?: boolean}>();
 defineEmits<{close: []; unassign: []}>();
@@ -88,7 +89,7 @@ async function toggleRelay(): Promise<void> {
             on: !props.device.capabilities?.relay?.state
         });
     } catch (err) {
-        switchError.value = err instanceof Error ? err.message : String(err);
+        switchError.value = extractErrorMessage(err);
     } finally {
         switching.value = false;
     }

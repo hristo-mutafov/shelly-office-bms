@@ -4,28 +4,48 @@
             <h2>{{ floorName }}</h2>
             <div>
                 <input ref="fileInput" type="file" accept="image/png,image/jpeg,image/webp" class="floor-scheme__file-input" @change="onFileChange" />
-                <button type="button" class="floor-scheme__upload-btn" :disabled="uploading" @click="fileInput?.click()">
-                    {{ uploading ? 'Processing…' : viz.floorPlan ? 'Replace schematic' : 'Upload schematic' }}
+                <button
+                    type="button"
+                    class="floor-scheme__upload-btn"
+                    :disabled="uploading || floorBlocked"
+                    @click="fileInput?.click()"
+                >
+                    {{
+                        floorLoading
+                            ? 'Loading floor…'
+                            : floorError
+                              ? 'Retry above first'
+                              : uploading
+                                ? 'Processing…'
+                                : viz.floorPlan
+                                  ? 'Replace schematic'
+                                  : 'Upload schematic'
+                    }}
                 </button>
             </div>
         </header>
         <p v-if="uploadError" class="floor-scheme__error">{{ uploadError }}</p>
 
-        <ol class="floor-scheme__steps">
-            <li :class="{done: !!viz.floorPlan}">Upload a floor plan image for this floor.</li>
-            <li :class="{done: markers.length > 0}">Drag a device from "Unassigned devices" onto the plan to place it.</li>
-            <li>Click a placed device's marker to view it or remove it from the plan.</li>
-        </ol>
-
         <div class="floor-scheme__layout">
             <div
                 class="floor-scheme__canvas-wrap"
-                @dragover.prevent
-                @drop="onDrop"
+                :class="{'is-drag-over': isDraggingOver}"
+                @dragover.prevent="onDragOver"
+                @dragleave.prevent="isDraggingOver = false"
+                @drop.prevent="onDrop"
             >
                 <EmptyState
-                    v-if="!viz.floorPlan"
-                    message="Upload a floor plan image to start placing devices."
+                    v-if="floorLoading"
+                    message="Loading this floor…"
+                    icon="fas fa-spinner fa-spin"
+                />
+                <div v-else-if="floorError" class="floor-scheme__load-error">
+                    <EmptyState :message="`Couldn't load this floor: ${floorError}`" icon="fas fa-triangle-exclamation" />
+                    <button type="button" class="floor-scheme__retry-btn" @click="reloadFloor">Retry</button>
+                </div>
+                <EmptyState
+                    v-else-if="!viz.floorPlan"
+                    message="Upload or drag and drop a floor plan image here to start placing devices."
                     icon="fas fa-file-image"
                 />
                 <div v-else ref="canvasEl" class="floor-scheme__canvas" :style="{aspectRatio: `${viz.floorPlan.widthPx} / ${viz.floorPlan.heightPx}`}">
@@ -35,7 +55,11 @@
                         :key="marker.device.shellyID"
                         type="button"
                         class="floor-scheme__marker"
-                        :class="{'is-online': marker.device.online, 'is-offline': !marker.device.online, 'has-alert': marker.device.online && marker.device.capabilities?.door?.open}"
+                        :class="{
+                            'is-online': isMarkerActive(marker.device),
+                            'is-offline': !isMarkerActive(marker.device),
+                            'has-alert': marker.device.online && marker.device.capabilities?.door?.open
+                        }"
                         :style="{left: `${marker.placement.x * 100}%`, top: `${marker.placement.y * 100}%`}"
                         :title="marker.device.name || marker.device.shellyID"
                         @click="selectedShellyId = marker.device.shellyID"
@@ -47,7 +71,7 @@
 
             <aside class="floor-scheme__tray">
                 <h3>Unassigned devices</h3>
-                <p v-if="!viz.floorPlan && trayDevices.length" class="floor-scheme__tray-hint">
+                <p v-if="!floorBlocked && !viz.floorPlan && trayDevices.length" class="floor-scheme__tray-hint">
                     Upload a floor plan (left) before you can drag devices onto it.
                 </p>
                 <EmptyState v-if="!trayDevices.length" message="All devices are placed on this floor." icon="fas fa-check" />
@@ -55,9 +79,9 @@
                     <li
                         v-for="device in trayDevices"
                         :key="device.shellyID"
-                        :draggable="!!viz.floorPlan"
-                        :class="{'is-disabled': !viz.floorPlan}"
-                        :title="viz.floorPlan ? '' : 'Upload a floor plan first'"
+                        :draggable="!!viz.floorPlan && !floorBlocked"
+                        :class="{'is-disabled': !viz.floorPlan || floorBlocked}"
+                        :title="floorLoading ? 'Loading floor…' : floorError ? 'Retry loading the floor first' : viz.floorPlan ? '' : 'Upload a floor plan first'"
                         @dragstart="onDragStart($event, device.shellyID)"
                     >
                         <span class="floor-scheme__tray-dot" :class="device.online ? 'is-online' : 'is-offline'" />
@@ -67,8 +91,8 @@
 
                 <div class="floor-scheme__legend">
                     <h3>Legend</h3>
-                    <div><span class="floor-scheme__legend-dot is-online" /> Online</div>
-                    <div><span class="floor-scheme__legend-dot is-offline" /> Offline</div>
+                    <div><span class="floor-scheme__legend-dot is-online" /> Online / on</div>
+                    <div><span class="floor-scheme__legend-dot is-offline" /> Offline / off</div>
                     <div><span class="floor-scheme__legend-dot has-alert" /> Door/window open</div>
                 </div>
             </aside>
@@ -89,6 +113,7 @@ import EmptyState from '@shared/components/EmptyState.vue';
 import {computed, ref, toRef} from 'vue';
 import {useFloorGroup} from '../composables/useFloorGroup';
 import {compressImageToDataUrl} from '../lib/compressImage';
+import {extractErrorMessage} from '../lib/errors';
 import DeviceDetailPopup from './DeviceDetailPopup.vue';
 
 const props = defineProps<{
@@ -97,10 +122,15 @@ const props = defineProps<{
     devices: HostDevice[];
 }>();
 
-const {viz, setFloorPlan, setDevicePlacement, removeDevicePlacement} = useFloorGroup(
-    toRef(props, 'floorLocationId'),
-    toRef(props, 'floorName')
-);
+const {
+    viz,
+    loading: floorLoading,
+    error: floorError,
+    setFloorPlan,
+    setDevicePlacement,
+    removeDevicePlacement,
+    reload: reloadFloor
+} = useFloorGroup(toRef(props, 'floorLocationId'), toRef(props, 'floorName'));
 
 // See Dashboard.vue for why this tracks id, not object reference.
 const selectedShellyId = ref<string | null>(null);
@@ -111,6 +141,8 @@ const fileInput = ref<HTMLInputElement | null>(null);
 const canvasEl = ref<HTMLDivElement | null>(null);
 const uploading = ref(false);
 const uploadError = ref<string | null>(null);
+const isDraggingOver = ref(false);
+const floorBlocked = computed(() => floorLoading.value || !!floorError.value);
 
 const markers = computed(() =>
     props.devices
@@ -122,18 +154,36 @@ const trayDevices = computed(() =>
     props.devices.filter((d) => !viz.value.devicePlacements?.[d.shellyID])
 );
 
+// Per the legend, the green/gray marker color means "on" as well as
+// "online" — a relay-bearing device (the plug) that's switched off reads as
+// gray even while still connected, not just when it drops offline entirely.
+function isMarkerActive(device: HostDevice): boolean {
+    if (!device.online) return false;
+    if (device.capabilities?.relay) return device.capabilities.relay.state;
+    return true;
+}
+
 function iconFor(device: HostDevice): string {
     if (device.capabilities?.door) {
         return device.capabilities.door.open ? 'fas fa-door-open' : 'fas fa-door-closed';
     }
+    // Relay-bearing devices (the plug) show their on/off state, not just a
+    // static plug icon — otherwise switching it off/on is invisible here.
+    if (device.capabilities?.relay) {
+        return device.capabilities.relay.state ? 'fas fa-plug-circle-check' : 'fas fa-plug-circle-xmark';
+    }
     if (device.capabilities?.temperature) return 'fas fa-temperature-half';
-    if (device.capabilities?.relay || device.capabilities?.energy) return 'fas fa-plug';
+    if (device.capabilities?.energy) return 'fas fa-plug';
     return 'fas fa-microchip';
 }
 
-async function onFileChange(event: Event): Promise<void> {
-    const file = (event.target as HTMLInputElement).files?.[0];
-    if (!file) return;
+async function uploadFloorPlan(file: File): Promise<void> {
+    if (floorBlocked.value) {
+        uploadError.value = floorError.value
+            ? 'This floor failed to load — click Retry above first.'
+            : 'Still loading this floor — try again in a moment.';
+        return;
+    }
     uploading.value = true;
     uploadError.value = null;
     try {
@@ -144,11 +194,21 @@ async function onFileChange(event: Event): Promise<void> {
             heightPx: compressed.heightPx
         });
     } catch (err) {
-        uploadError.value = err instanceof Error ? err.message : String(err);
+        uploadError.value = extractErrorMessage(err);
     } finally {
         uploading.value = false;
-        if (fileInput.value) fileInput.value.value = '';
     }
+}
+
+async function onFileChange(event: Event): Promise<void> {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    await uploadFloorPlan(file);
+    if (fileInput.value) fileInput.value.value = '';
+}
+
+function onDragOver(): void {
+    if (!floorBlocked.value) isDraggingOver.value = true;
 }
 
 function onDragStart(event: DragEvent, shellyID: string): void {
@@ -156,8 +216,14 @@ function onDragStart(event: DragEvent, shellyID: string): void {
 }
 
 async function onDrop(event: DragEvent): Promise<void> {
+    isDraggingOver.value = false;
+    const file = event.dataTransfer?.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+        await uploadFloorPlan(file);
+        return;
+    }
     const shellyID = event.dataTransfer?.getData('text/plain');
-    if (!shellyID || !canvasEl.value) return;
+    if (!shellyID || !canvasEl.value || floorBlocked.value) return;
     const rect = canvasEl.value.getBoundingClientRect();
     const x = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
     const y = Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height));
@@ -197,48 +263,21 @@ async function onUnassign(): Promise<void> {
     font-size: 0.85rem;
 }
 
-.floor-scheme__steps {
+.floor-scheme__load-error {
     display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2, 8px) var(--space-5, 16px);
-    margin: 0 0 var(--space-4, 12px);
-    padding: 0;
-    list-style: none;
-    counter-reset: step;
-    font-size: 0.8rem;
-    opacity: 0.75;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3, 10px);
 }
 
-.floor-scheme__steps li {
-    counter-increment: step;
-    padding-left: 20px;
-    position: relative;
-}
-
-.floor-scheme__steps li::before {
-    content: counter(step);
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    border: 1px solid currentColor;
-    font-size: 0.65rem;
-    line-height: 14px;
-    text-align: center;
-}
-
-.floor-scheme__steps li.done {
-    opacity: 0.5;
-    text-decoration: line-through;
-}
-
-.floor-scheme__steps li.done::before {
-    content: '\2713';
-    background: #18a999;
-    border-color: #18a999;
-    color: white;
+.floor-scheme__retry-btn {
+    padding: 6px 16px;
+    border-radius: var(--radius-md, 10px);
+    border: 1px solid color-mix(in srgb, #e0642c 40%, transparent);
+    background: transparent;
+    color: #e0642c;
+    font-weight: 600;
+    cursor: pointer;
 }
 
 .floor-scheme__tray-hint {
@@ -262,6 +301,12 @@ async function onUnassign(): Promise<void> {
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.floor-scheme__canvas-wrap.is-drag-over {
+    border-color: var(--fm-template-accent);
+    background: color-mix(in srgb, var(--fm-template-accent) 6%, var(--fm-template-card));
 }
 
 .floor-scheme__canvas {
@@ -303,6 +348,23 @@ async function onUnassign(): Promise<void> {
 
 .floor-scheme__marker.has-alert {
     box-shadow: 0 0 0 3px #e0642c;
+}
+
+.floor-scheme__tray :deep(.empty-state) {
+    padding: var(--space-4, 12px);
+    border: 1px solid color-mix(in srgb, #18a999 35%, transparent);
+    border-radius: var(--radius-md, 10px);
+    color: #18a999;
+    background: color-mix(in srgb, #18a999 8%, transparent);
+}
+
+.floor-scheme__tray :deep(.empty-state i) {
+    font-size: 1.1rem;
+}
+
+.floor-scheme__tray :deep(.empty-state p) {
+    font-size: 0.8rem;
+    margin: 0;
 }
 
 .floor-scheme__tray ul {

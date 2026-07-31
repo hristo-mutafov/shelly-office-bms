@@ -1,6 +1,7 @@
 import type {DeviceChangeEvent} from '@template-contract';
 import {callMethod} from '@host';
 import {computed, type Ref, ref, watch} from 'vue';
+import {extractErrorMessage} from '../lib/errors';
 
 export type UseDeviceEventsOptions = {
     shellyIds: string[];
@@ -45,7 +46,7 @@ export function useDeviceEvents(options: Ref<UseDeviceEventsOptions | null>) {
                 kind: item.kind
             }));
         } catch (err) {
-            error.value = err instanceof Error ? err.message : String(err);
+            error.value = extractErrorMessage(err);
             state.value = 'error';
             return;
         }

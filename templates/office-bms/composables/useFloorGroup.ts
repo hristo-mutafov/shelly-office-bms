@@ -1,6 +1,7 @@
 import type {DevicePlacement, FloorPlanMeta, FloorVisualization} from '@template-contract';
 import {groups, useGroupActions} from '@host';
 import {computed, ref, watch, type Ref} from 'vue';
+import {extractErrorMessage} from '../lib/errors';
 
 type ShadowGroup = {
     id: number;
@@ -13,6 +14,20 @@ type ShadowGroup = {
 // placements — data that doesn't fit in Location.kindFields' byte budget.
 // The Location stays the source of truth for the physical hierarchy and
 // device assignment; the Group is purely a visualization/storage sidecar.
+// Cold page loads (a hard reload while on a floor page) restart the whole
+// host session — auth/websocket bootstrap can still be settling when this
+// composable's very first RPC fires, which used to fail outright and leave
+// the floor looking empty (the upload prompt) until the user navigated away
+// and back, re-triggering a fresh — by then successful — load. Retrying a
+// few times with backoff smooths over that boot race instead of silently
+// giving up on the first transient failure.
+const LOAD_MAX_ATTEMPTS = 4;
+const LOAD_RETRY_DELAY_MS = 700;
+
+function sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export function useFloorGroup(floorLocationId: Ref<number | null>, floorName: Ref<string>) {
     const group = ref<ShadowGroup | null>(null);
     const loading = ref(false);
@@ -23,6 +38,35 @@ export function useFloorGroup(floorLocationId: Ref<number | null>, floorName: Re
         () => (group.value?.metadata?.viz as FloorVisualization | undefined) ?? {}
     );
 
+    async function loadOnce(locationId: number): Promise<void> {
+        const existing = (await groups.list({})).find(
+            (g) => (g.metadata as Record<string, unknown> | undefined)?.floorLocationId === locationId
+        );
+        if (existing) {
+            group.value = {
+                id: existing.id,
+                name: existing.name,
+                metadata: (existing.metadata as Record<string, unknown>) ?? {}
+            };
+            return;
+        }
+        // floorName can still be the caller's loading-state fallback (e.g.
+        // 'Floor') if Locations hasn't finished fetching yet on a cold page
+        // load — two different floors racing that same fallback would both
+        // try to create a group with the identical name and collide
+        // ("already exists"). Suffixing with the (always-present) location
+        // id keeps the name unique regardless of that timing.
+        const created = await actions.create.run({
+            name: `${floorName.value || 'Floor'} (visualization) #${locationId}`,
+            metadata: {floorLocationId: locationId, viz: {}}
+        });
+        group.value = {
+            id: Number(created.id),
+            name: created.name,
+            metadata: {floorLocationId: locationId, viz: {}}
+        };
+    }
+
     async function load(): Promise<void> {
         const locationId = floorLocationId.value;
         if (!locationId) {
@@ -31,31 +75,20 @@ export function useFloorGroup(floorLocationId: Ref<number | null>, floorName: Re
         }
         loading.value = true;
         error.value = null;
-        try {
-            const existing = (await groups.list({})).find(
-                (g) => (g.metadata as Record<string, unknown> | undefined)?.floorLocationId === locationId
-            );
-            if (existing) {
-                group.value = {
-                    id: existing.id,
-                    name: existing.name,
-                    metadata: (existing.metadata as Record<string, unknown>) ?? {}
-                };
+        for (let attempt = 1; attempt <= LOAD_MAX_ATTEMPTS; attempt++) {
+            try {
+                await loadOnce(locationId);
+                error.value = null;
+                loading.value = false;
                 return;
+            } catch (err) {
+                if (attempt === LOAD_MAX_ATTEMPTS) {
+                    error.value = extractErrorMessage(err);
+                    loading.value = false;
+                    return;
+                }
+                await sleep(LOAD_RETRY_DELAY_MS * attempt);
             }
-            const created = await actions.create.run({
-                name: `${floorName.value} (visualization)`,
-                metadata: {floorLocationId: locationId, viz: {}}
-            });
-            group.value = {
-                id: Number(created.id),
-                name: created.name,
-                metadata: {floorLocationId: locationId, viz: {}}
-            };
-        } catch (err) {
-            error.value = err instanceof Error ? err.message : String(err);
-        } finally {
-            loading.value = false;
         }
     }
 

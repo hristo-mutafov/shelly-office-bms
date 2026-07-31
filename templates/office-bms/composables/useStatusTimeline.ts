@@ -1,6 +1,7 @@
 import type {StatusTimelinePoint} from '@template-contract';
 import {callMethod} from '@host';
 import {computed, type Ref, ref, watch} from 'vue';
+import {extractErrorMessage} from '../lib/errors';
 
 export type UseStatusTimelineOptions = {
     shellyID: string;
@@ -35,7 +36,7 @@ export function useStatusTimeline(options: Ref<UseStatusTimelineOptions | null>)
             points.value = res.data ?? [];
             state.value = 'ready';
         } catch (err) {
-            error.value = err instanceof Error ? err.message : String(err);
+            error.value = extractErrorMessage(err);
             state.value = 'error';
         }
     }
