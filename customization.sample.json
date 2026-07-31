@@ -3,6 +3,7 @@
     "clientName": "Acme Office",
     "title": "Acme Office BMS",
     "subtitle": "Building management overview",
+    "logoUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CiAgPHBvbHlnb24gcG9pbnRzPSIzMiw2IDYsMjYgNTgsMjYiIGZpbGw9IiMxOGE5OTkiLz4KICA8cmVjdCB4PSIxMCIgeT0iMjYiIHdpZHRoPSI0NCIgaGVpZ2h0PSIzMiIgcng9IjQiIGZpbGw9IiMxZjczZDYiLz4KICA8cmVjdCB4PSIxOCIgeT0iMzQiIHdpZHRoPSI5IiBoZWlnaHQ9IjkiIHJ4PSIxLjUiIGZpbGw9IiNmZmZmZmYiLz4KICA8cmVjdCB4PSIzNyIgeT0iMzQiIHdpZHRoPSI5IiBoZWlnaHQ9IjkiIHJ4PSIxLjUiIGZpbGw9IiNmZmZmZmYiLz4KICA8cmVjdCB4PSIyNyIgeT0iNDciIHdpZHRoPSIxMCIgaGVpZ2h0PSIxMSIgcng9IjEuNSIgZmlsbD0iI2ZmZmZmZiIvPgo8L3N2Zz4K",
     "theme": {
         "primary": "#1f73d6",
         "accent": "#18a999",

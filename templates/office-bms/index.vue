@@ -3,10 +3,8 @@
         <header class="office-bms__header">
             <div class="office-bms__brand">
                 <img v-if="customization.logoUrl" :src="customization.logoUrl" alt="" class="office-bms__logo" />
-                <div>
-                    <p class="office-bms__eyebrow">{{ customization.clientName || 'Office BMS' }}</p>
-                    <h1>{{ customization.title || buildingName }}</h1>
-                </div>
+                <i v-else class="fas fa-building office-bms__logo-fallback" />
+                <h1>{{ customization.title || customization.clientName || buildingName }}</h1>
             </div>
             <nav class="office-bms__nav">
                 <button type="button" :class="{active: nav.view.value === 'dashboard'}" @click="nav.goToDashboard()">
@@ -63,6 +61,7 @@ import EventsPanel from './components/EventsPanel.vue';
 import FloorScheme from './components/FloorScheme.vue';
 import {useDeviceRoles} from './composables/useDeviceRoles';
 import {useTemplateNav} from './composables/useTemplateNav';
+import {refreshUntilReady} from './lib/retry';
 
 const customization = useCustomization();
 const user = useCurrentUser();
@@ -73,13 +72,20 @@ const buildingName = 'Office Building';
 const roles = useDeviceRoles(computed(() => devices.data.value));
 const nav = useTemplateNav();
 
-const selectedFloorName = computed(
-    () => locationsState.data.value.find((l) => l.id === nav.floorId.value)?.name || 'Floor'
-);
+// Locations loads async — while it's still in flight (e.g. a cold reload
+// straight onto a floor URL), falling back to a bare generic 'Floor' label
+// looked like the page genuinely couldn't tell you which floor you were on.
+// Say so honestly instead, and once loaded, show the real name (or the id
+// as a last resort if the floor is somehow gone).
+const selectedFloorName = computed(() => {
+    const floor = locationsState.data.value.find((l) => l.id === nav.floorId.value);
+    if (floor) return floor.name;
+    return locationsState.loading.value ? 'Loading…' : `Floor #${nav.floorId.value}`;
+});
 
 onMounted(() => {
-    void devices.refresh();
-    void locationsState.refresh();
+    void refreshUntilReady(devices);
+    void refreshUntilReady(locationsState);
 });
 </script>
 
@@ -112,7 +118,11 @@ onMounted(() => {
     object-fit: contain;
 }
 
-.office-bms__eyebrow,
+.office-bms__logo-fallback {
+    font-size: 1.5rem;
+    color: var(--fm-template-accent);
+}
+
 .office-bms__user {
     color: var(--fm-template-accent);
     font-weight: 700;

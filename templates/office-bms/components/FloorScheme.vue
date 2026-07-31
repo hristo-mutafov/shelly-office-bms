@@ -1,7 +1,7 @@
 <template>
     <div class="floor-scheme">
         <header class="floor-scheme__header">
-            <h2>{{ floorName }}</h2>
+            <h2><i class="fas fa-layer-group" /> {{ floorName }}</h2>
             <div>
                 <input ref="fileInput" type="file" accept="image/png,image/jpeg,image/webp" class="floor-scheme__file-input" @change="onFileChange" />
                 <button
@@ -243,6 +243,17 @@ async function onUnassign(): Promise<void> {
     align-items: center;
     justify-content: space-between;
     margin-bottom: var(--space-4, 12px);
+}
+
+.floor-scheme__header h2 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.floor-scheme__header h2 i {
+    color: var(--fm-template-accent);
+    font-size: 0.85em;
 }
 
 .floor-scheme__file-input {
