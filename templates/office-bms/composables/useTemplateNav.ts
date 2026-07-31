@@ -23,20 +23,24 @@ export function useTemplateNav() {
         return raw && Number.isFinite(n) ? n : null;
     });
 
+    // push (not replace) — each nav call must add a history entry so the
+    // browser's back button can step back through dashboard → building →
+    // floor. replace() collapses them into one entry, which is why back
+    // used to always land on dashboard regardless of where you came from.
     function goToDashboard(): void {
-        void router.replace({query: {}});
+        void router.push({query: {}});
     }
 
     function goToBuilding(): void {
-        void router.replace({query: {view: 'building'}});
+        void router.push({query: {view: 'building'}});
     }
 
     function goToFloor(id: number): void {
-        void router.replace({query: {view: 'floor', floor: String(id)}});
+        void router.push({query: {view: 'floor', floor: String(id)}});
     }
 
     function goToEvents(): void {
-        void router.replace({query: {view: 'events'}});
+        void router.push({query: {view: 'events'}});
     }
 
     return {view, floorId, goToDashboard, goToBuilding, goToFloor, goToEvents};

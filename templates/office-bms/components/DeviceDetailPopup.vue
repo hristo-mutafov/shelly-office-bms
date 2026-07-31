@@ -48,6 +48,12 @@
                 </button>
                 <p v-if="switchError" class="device-popup__error">{{ switchError }}</p>
             </div>
+
+            <div v-if="unassignable" class="device-popup__unassign">
+                <button type="button" class="device-popup__unassign-btn" @click="$emit('unassign')">
+                    <i class="fas fa-map-marker-alt" /> Remove from floor plan
+                </button>
+            </div>
         </template>
     </Modal>
 </template>
@@ -58,8 +64,8 @@ import {devices} from '@host';
 import Modal from '@shared/components/Modal.vue';
 import {ref} from 'vue';
 
-const props = defineProps<{device: HostDevice | null}>();
-defineEmits<{close: []}>();
+const props = defineProps<{device: HostDevice | null; unassignable?: boolean}>();
+defineEmits<{close: []; unassign: []}>();
 
 const switching = ref(false);
 const switchError = ref<string | null>(null);
@@ -155,5 +161,23 @@ async function toggleRelay(): Promise<void> {
     color: #e0642c;
     font-size: 0.8rem;
     margin: 8px 0 0;
+}
+
+.device-popup__unassign {
+    margin-top: var(--space-3, 10px);
+    padding-top: var(--space-3, 10px);
+    border-top: 1px solid color-mix(in srgb, var(--fm-template-text) 14%, transparent);
+}
+
+.device-popup__unassign-btn {
+    width: 100%;
+    padding: 8px;
+    border-radius: var(--radius-md, 10px);
+    border: 1px solid color-mix(in srgb, #e0642c 40%, transparent);
+    background: transparent;
+    color: #e0642c;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
 }
 </style>

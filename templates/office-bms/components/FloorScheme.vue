@@ -11,6 +11,12 @@
         </header>
         <p v-if="uploadError" class="floor-scheme__error">{{ uploadError }}</p>
 
+        <ol class="floor-scheme__steps">
+            <li :class="{done: !!viz.floorPlan}">Upload a floor plan image for this floor.</li>
+            <li :class="{done: markers.length > 0}">Drag a device from "Unassigned devices" onto the plan to place it.</li>
+            <li>Click a placed device's marker to view it or remove it from the plan.</li>
+        </ol>
+
         <div class="floor-scheme__layout">
             <div
                 class="floor-scheme__canvas-wrap"
@@ -41,12 +47,17 @@
 
             <aside class="floor-scheme__tray">
                 <h3>Unassigned devices</h3>
+                <p v-if="!viz.floorPlan && trayDevices.length" class="floor-scheme__tray-hint">
+                    Upload a floor plan (left) before you can drag devices onto it.
+                </p>
                 <EmptyState v-if="!trayDevices.length" message="All devices are placed on this floor." icon="fas fa-check" />
                 <ul v-else>
                     <li
                         v-for="device in trayDevices"
                         :key="device.shellyID"
-                        draggable="true"
+                        :draggable="!!viz.floorPlan"
+                        :class="{'is-disabled': !viz.floorPlan}"
+                        :title="viz.floorPlan ? '' : 'Upload a floor plan first'"
                         @dragstart="onDragStart($event, device.shellyID)"
                     >
                         <span class="floor-scheme__tray-dot" :class="device.online ? 'is-online' : 'is-offline'" />
@@ -63,7 +74,12 @@
             </aside>
         </div>
 
-        <DeviceDetailPopup :device="selectedDevice" @close="selectedShellyId = null" />
+        <DeviceDetailPopup
+            :device="selectedDevice"
+            unassignable
+            @close="selectedShellyId = null"
+            @unassign="onUnassign"
+        />
     </div>
 </template>
 
@@ -81,7 +97,7 @@ const props = defineProps<{
     devices: HostDevice[];
 }>();
 
-const {viz, setFloorPlan, setDevicePlacement} = useFloorGroup(
+const {viz, setFloorPlan, setDevicePlacement, removeDevicePlacement} = useFloorGroup(
     toRef(props, 'floorLocationId'),
     toRef(props, 'floorName')
 );
@@ -147,6 +163,12 @@ async function onDrop(event: DragEvent): Promise<void> {
     const y = Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height));
     await setDevicePlacement(shellyID, {x, y});
 }
+
+async function onUnassign(): Promise<void> {
+    if (!selectedShellyId.value) return;
+    await removeDevicePlacement(selectedShellyId.value);
+    selectedShellyId.value = null;
+}
 </script>
 
 <style scoped>
@@ -173,6 +195,56 @@ async function onDrop(event: DragEvent): Promise<void> {
 .floor-scheme__error {
     color: #e0642c;
     font-size: 0.85rem;
+}
+
+.floor-scheme__steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2, 8px) var(--space-5, 16px);
+    margin: 0 0 var(--space-4, 12px);
+    padding: 0;
+    list-style: none;
+    counter-reset: step;
+    font-size: 0.8rem;
+    opacity: 0.75;
+}
+
+.floor-scheme__steps li {
+    counter-increment: step;
+    padding-left: 20px;
+    position: relative;
+}
+
+.floor-scheme__steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1px solid currentColor;
+    font-size: 0.65rem;
+    line-height: 14px;
+    text-align: center;
+}
+
+.floor-scheme__steps li.done {
+    opacity: 0.5;
+    text-decoration: line-through;
+}
+
+.floor-scheme__steps li.done::before {
+    content: '\2713';
+    background: #18a999;
+    border-color: #18a999;
+    color: white;
+}
+
+.floor-scheme__tray-hint {
+    font-size: 0.75rem;
+    opacity: 0.7;
+    margin: 0 0 var(--space-3, 10px);
 }
 
 .floor-scheme__layout {
@@ -250,6 +322,11 @@ async function onDrop(event: DragEvent): Promise<void> {
     cursor: grab;
     font-size: 0.85rem;
     background: var(--fm-template-card);
+}
+
+.floor-scheme__tray li.is-disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
 }
 
 .floor-scheme__tray-dot,
