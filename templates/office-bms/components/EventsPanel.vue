@@ -54,6 +54,20 @@ const relayEventOptions = ref(
 );
 const {events: relayRawEvents} = useDeviceEvents(relayEventOptions);
 
+// Same rationale as DoorWindowPanel: no component filter, since a BLU
+// door/window sensor's exact component key isn't confirmed ahead of time —
+// take whatever boolean-valued state change it reports.
+const doorEventOptions = ref(
+    !props.doorWindowSensorIsMock
+        ? {
+              shellyIds: [props.doorWindowSensor.shellyID],
+              from: dayAgo.toISOString(),
+              to: now.toISOString()
+          }
+        : null
+);
+const {events: doorRawEvents} = useDeviceEvents(doorEventOptions);
+
 const events = computed<FeedEvent[]>(() => {
     const relayEvents: FeedEvent[] = relayRawEvents.value
         .filter((e) => e.field === 'output')
@@ -75,7 +89,15 @@ const events = computed<FeedEvent[]>(() => {
                   description: `${props.doorWindowSensor.name} ${p.value ? 'opened' : 'closed'}`,
                   isMock: true
               }))
-        : [];
+        : doorRawEvents.value
+              .filter((e) => typeof e.next === 'boolean')
+              .map((e) => ({
+                  ts: e.ts,
+                  kind: 'door' as const,
+                  icon: e.next ? 'fas fa-door-open' : 'fas fa-door-closed',
+                  description: `${props.doorWindowSensor.name || 'Door/window sensor'} ${e.next ? 'opened' : 'closed'}`,
+                  isMock: false
+              }));
 
     return [...relayEvents, ...doorEvents].sort((a, b) => b.ts.localeCompare(a.ts));
 });
