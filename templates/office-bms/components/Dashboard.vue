@@ -70,8 +70,11 @@
             <h2>Devices</h2>
             <ul>
                 <li v-for="device in devices" :key="device.shellyID" @click="selectedShellyId = device.shellyID">
-                    <span class="dashboard__device-dot" :class="device.online ? 'is-online' : 'is-offline'" />
-                    <span>{{ device.name || device.shellyID }}</span>
+                    <span class="dashboard__device-dot" :class="`is-${deviceDotState(device)}`" />
+                    <span class="dashboard__device-name">
+                        {{ device.name || device.shellyID }}
+                        <span v-if="device.name" class="dashboard__device-id">{{ device.shellyID }}</span>
+                    </span>
                     <i class="fas fa-chevron-right" />
                 </li>
             </ul>
@@ -107,6 +110,12 @@ const selectedShellyId = ref<string | null>(null);
 const selectedDevice = computed(
     () => props.devices.find((d) => d.shellyID === selectedShellyId.value) ?? null
 );
+
+function deviceDotState(device: HostDevice): 'online' | 'offline' | 'off' {
+    if (!device.online) return 'offline';
+    if (device.capabilities?.relay && !device.capabilities.relay.state) return 'off';
+    return 'online';
+}
 
 // device.list keeps the *last known* reading even after a device goes
 // offline (nothing resets it to 0), so an unplugged plug would otherwise
@@ -253,6 +262,13 @@ const attentionItems = computed(() => {
     font-size: 0.75rem;
 }
 
+.dashboard__device-id {
+    margin-left: 6px;
+    font-size: 0.75rem;
+    font-weight: 400;
+    opacity: 0.5;
+}
+
 .dashboard__device-dot {
     width: 8px;
     height: 8px;
@@ -265,5 +281,9 @@ const attentionItems = computed(() => {
 
 .dashboard__device-dot.is-offline {
     background: var(--bms-status-offline, #9ca3af);
+}
+
+.dashboard__device-dot.is-off {
+    background: var(--bms-status-alert, #e0642c);
 }
 </style>

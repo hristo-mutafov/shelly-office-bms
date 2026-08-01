@@ -5,6 +5,7 @@
                 <span class="device-popup__badge" :class="device.online ? 'is-online' : 'is-offline'">
                     {{ device.online ? 'Online' : 'Offline' }}
                 </span>
+                <span v-if="device.name" class="device-popup__id">{{ device.shellyID }}</span>
             </div>
 
             <dl v-if="device.capabilities?.energy" class="device-popup__readings">
@@ -95,7 +96,15 @@ async function toggleRelay(): Promise<void> {
 
 <style scoped>
 .device-popup__status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     margin-bottom: var(--space-4, 12px);
+}
+
+.device-popup__id {
+    font-size: 0.75rem;
+    opacity: 0.55;
 }
 
 .device-popup__badge {

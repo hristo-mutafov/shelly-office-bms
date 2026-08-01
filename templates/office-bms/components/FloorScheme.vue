@@ -61,7 +61,7 @@
                             'has-alert': marker.device.online && marker.device.capabilities?.door?.open
                         }"
                         :style="{left: `${marker.placement.x * 100}%`, top: `${marker.placement.y * 100}%`}"
-                        :title="marker.device.name || marker.device.shellyID"
+                        :title="marker.device.name ? `${marker.device.name} (${marker.device.shellyID})` : marker.device.shellyID"
                         @click="selectedShellyId = marker.device.shellyID"
                     >
                         <i :class="iconFor(marker.device)" />
@@ -85,7 +85,10 @@
                         @dragstart="onDragStart($event, device.shellyID)"
                     >
                         <span class="floor-scheme__tray-dot" :class="device.online ? 'is-online' : 'is-offline'" />
-                        {{ device.name || device.shellyID }}
+                        <span class="floor-scheme__tray-name">
+                            {{ device.name || device.shellyID }}
+                            <span v-if="device.name" class="floor-scheme__tray-id">{{ device.shellyID }}</span>
+                        </span>
                     </li>
                 </ul>
 
@@ -395,6 +398,20 @@ async function onUnassign(): Promise<void> {
     cursor: grab;
     font-size: 0.85rem;
     background: var(--fm-template-card);
+}
+
+.floor-scheme__tray-name {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.floor-scheme__tray-id {
+    font-size: 0.68rem;
+    opacity: 0.5;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .floor-scheme__tray li.is-disabled {
