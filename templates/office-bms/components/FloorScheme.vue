@@ -270,7 +270,7 @@ async function onUnassign(): Promise<void> {
 }
 
 .floor-scheme__error {
-    color: #e0642c;
+    color: var(--bms-status-alert, #e0642c);
     font-size: 0.85rem;
 }
 
@@ -284,9 +284,9 @@ async function onUnassign(): Promise<void> {
 .floor-scheme__retry-btn {
     padding: 6px 16px;
     border-radius: var(--radius-md, 10px);
-    border: 1px solid color-mix(in srgb, #e0642c 40%, transparent);
+    border: 1px solid color-mix(in srgb, var(--bms-status-alert, #e0642c) 40%, transparent);
     background: transparent;
-    color: #e0642c;
+    color: var(--bms-status-alert, #e0642c);
     font-weight: 600;
     cursor: pointer;
 }
@@ -350,23 +350,23 @@ async function onUnassign(): Promise<void> {
 }
 
 .floor-scheme__marker.is-online {
-    background: #18a999;
+    background: var(--bms-status-online, #18a999);
 }
 
 .floor-scheme__marker.is-offline {
-    background: #9ca3af;
+    background: var(--bms-status-offline, #9ca3af);
 }
 
 .floor-scheme__marker.has-alert {
-    box-shadow: 0 0 0 3px #e0642c;
+    box-shadow: 0 0 0 3px var(--bms-status-alert, #e0642c);
 }
 
 .floor-scheme__tray :deep(.empty-state) {
     padding: var(--space-4, 12px);
-    border: 1px solid color-mix(in srgb, #18a999 35%, transparent);
+    border: 1px solid color-mix(in srgb, var(--bms-status-online, #18a999) 35%, transparent);
     border-radius: var(--radius-md, 10px);
-    color: #18a999;
-    background: color-mix(in srgb, #18a999 8%, transparent);
+    color: var(--bms-status-online, #18a999);
+    background: color-mix(in srgb, var(--bms-status-online, #18a999) 8%, transparent);
 }
 
 .floor-scheme__tray :deep(.empty-state i) {
@@ -412,17 +412,17 @@ async function onUnassign(): Promise<void> {
 
 .floor-scheme__tray-dot.is-online,
 .floor-scheme__legend-dot.is-online {
-    background: #18a999;
+    background: var(--bms-status-online, #18a999);
 }
 
 .floor-scheme__tray-dot.is-offline,
 .floor-scheme__legend-dot.is-offline {
-    background: #9ca3af;
+    background: var(--bms-status-offline, #9ca3af);
 }
 
 .floor-scheme__legend-dot.has-alert {
     background: white;
-    box-shadow: 0 0 0 3px #e0642c;
+    box-shadow: 0 0 0 3px var(--bms-status-alert, #e0642c);
 }
 
 .floor-scheme__legend {

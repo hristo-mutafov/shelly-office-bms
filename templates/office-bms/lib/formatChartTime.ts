@@ -1,3 +1,15 @@
+// Event timestamps come back as raw ISO strings too — same idea as
+// formatChartBuckets below, but for a single point-in-time event row
+// (device events, door/window history) rather than a chart axis.
+export function formatEventTime(ts: string): string {
+    return new Date(ts).toLocaleString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
 // Chart bucket labels come back as raw ISO strings (e.g.
 // "2026-07-30T02:00:00.000Z") from the history RPCs — format them for
 // display instead of dumping the ISO string straight into the axis.

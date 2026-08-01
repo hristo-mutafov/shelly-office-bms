@@ -33,6 +33,7 @@
             <BuildingView
                 v-else-if="nav.view.value === 'building'"
                 :devices="devices.data.value"
+                :locations="locationsState.data.value"
                 @select-floor="nav.goToFloor"
             />
             <FloorScheme
@@ -91,6 +92,13 @@ onMounted(() => {
 
 <style scoped>
 .office-bms {
+    /* Shared status palette — every panel/marker across the template reads
+       these instead of repeating the hex values, so the meaning of "green"
+       vs "gray" vs "orange" stays consistent everywhere it's used. */
+    --bms-status-online: #18a999;
+    --bms-status-offline: #9ca3af;
+    --bms-status-alert: #e0642c;
+
     min-height: 100vh;
     padding: var(--space-8);
     color: var(--fm-template-text);

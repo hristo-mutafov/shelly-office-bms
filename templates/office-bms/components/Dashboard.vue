@@ -183,8 +183,8 @@ const attentionItems = computed(() => {
 .dashboard__attention {
     padding: var(--space-4, 12px) var(--space-5, 16px);
     border-radius: var(--radius-md, 10px);
-    background: color-mix(in srgb, #e0642c 10%, var(--fm-template-card));
-    border: 1px solid color-mix(in srgb, #e0642c 35%, transparent);
+    background: color-mix(in srgb, var(--bms-status-alert, #e0642c) 10%, var(--fm-template-card));
+    border: 1px solid color-mix(in srgb, var(--bms-status-alert, #e0642c) 35%, transparent);
 }
 
 .dashboard__attention h2 {
@@ -260,10 +260,10 @@ const attentionItems = computed(() => {
 }
 
 .dashboard__device-dot.is-online {
-    background: #18a999;
+    background: var(--bms-status-online, #18a999);
 }
 
 .dashboard__device-dot.is-offline {
-    background: #9ca3af;
+    background: var(--bms-status-offline, #9ca3af);
 }
 </style>

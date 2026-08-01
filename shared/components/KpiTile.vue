@@ -36,8 +36,8 @@ defineProps<{
 }
 
 .kpi-tile--attention {
-    border-color: color-mix(in srgb, #e0642c 55%, transparent);
-    background: color-mix(in srgb, #e0642c 8%, var(--fm-template-card));
+    border-color: color-mix(in srgb, var(--bms-status-alert, #e0642c) 55%, transparent);
+    background: color-mix(in srgb, var(--bms-status-alert, #e0642c) 8%, var(--fm-template-card));
 }
 
 .kpi-tile__icon {

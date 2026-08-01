@@ -12,7 +12,7 @@
             <li v-for="(event, i) in events" :key="i">
                 <span class="dw-panel__event-dot" :class="event.value ? 'is-open' : 'is-closed'" />
                 <span>{{ event.value ? 'Opened' : 'Closed' }}</span>
-                <time>{{ formatTime(event.ts) }}</time>
+                <time>{{ formatEventTime(event.ts) }}</time>
             </li>
         </ul>
         <EmptyState v-else message="No open/close events in the last 24 hours." icon="fas fa-door-closed" />
@@ -25,6 +25,7 @@ import EmptyState from '@shared/components/EmptyState.vue';
 import MockBadge from '@shared/components/MockBadge.vue';
 import {computed, ref} from 'vue';
 import {useDeviceEvents} from '../composables/useDeviceEvents';
+import {formatEventTime} from '../lib/formatChartTime';
 import {mockDoorWindowHistory} from '../lib/mockClimateDoorWindow';
 
 const props = defineProps<{
@@ -69,14 +70,6 @@ const events = computed(() =>
     ).reverse()
 );
 
-function formatTime(ts: string): string {
-    return new Date(ts).toLocaleString(undefined, {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
 </script>
 
 <style scoped>
@@ -108,13 +101,13 @@ function formatTime(ts: string): string {
 }
 
 .dw-panel__state--open {
-    background: color-mix(in srgb, #e0642c 18%, transparent);
-    color: #e0642c;
+    background: color-mix(in srgb, var(--bms-status-alert, #e0642c) 18%, transparent);
+    color: var(--bms-status-alert, #e0642c);
 }
 
 .dw-panel__state--closed {
-    background: color-mix(in srgb, #18a999 18%, transparent);
-    color: #18a999;
+    background: color-mix(in srgb, var(--bms-status-online, #18a999) 18%, transparent);
+    color: var(--bms-status-online, #18a999);
 }
 
 .dw-panel__events {
@@ -148,10 +141,10 @@ function formatTime(ts: string): string {
 }
 
 .dw-panel__event-dot.is-open {
-    background: #e0642c;
+    background: var(--bms-status-alert, #e0642c);
 }
 
 .dw-panel__event-dot.is-closed {
-    background: #18a999;
+    background: var(--bms-status-online, #18a999);
 }
 </style>

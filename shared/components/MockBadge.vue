@@ -1,5 +1,5 @@
 <template>
-    <span class="mock-badge" title="Sensor not yet onboarded — see README for why">
+    <span class="mock-badge" title="Simulated data — this sensor hasn't been connected yet">
         <i class="fas fa-flask" /> Mock data
     </span>
 </template>

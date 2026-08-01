@@ -8,7 +8,7 @@
                 <i :class="event.icon" />
                 <span class="events-panel__desc">{{ event.description }}</span>
                 <MockBadge v-if="event.isMock" />
-                <time>{{ formatTime(event.ts) }}</time>
+                <time>{{ formatEventTime(event.ts) }}</time>
             </li>
         </ul>
     </div>
@@ -20,6 +20,7 @@ import EmptyState from '@shared/components/EmptyState.vue';
 import MockBadge from '@shared/components/MockBadge.vue';
 import {computed, ref} from 'vue';
 import {useDeviceEvents} from '../composables/useDeviceEvents';
+import {formatEventTime} from '../lib/formatChartTime';
 import {mockDoorWindowHistory} from '../lib/mockClimateDoorWindow';
 
 const props = defineProps<{
@@ -101,15 +102,6 @@ const events = computed<FeedEvent[]>(() => {
 
     return [...relayEvents, ...doorEvents].sort((a, b) => b.ts.localeCompare(a.ts));
 });
-
-function formatTime(ts: string): string {
-    return new Date(ts).toLocaleString(undefined, {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
 </script>
 
 <style scoped>
@@ -158,7 +150,7 @@ function formatTime(ts: string): string {
 }
 
 .events-panel__dot.door {
-    background: #e0642c;
+    background: var(--bms-status-alert, #e0642c);
 }
 
 .events-panel__desc {

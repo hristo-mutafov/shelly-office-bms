@@ -79,24 +79,32 @@
 
 <script setup lang="ts">
 import type {HostDevice} from '@host';
-import {groups, useCustomization, useLocations} from '@host';
+import {groups, useCustomization} from '@host';
 import Box3D from '@shared/components/Box3D.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 import {computed, onMounted, ref} from 'vue';
 import RoofPrism from './RoofPrism.vue';
 
-const props = defineProps<{devices: HostDevice[]}>();
+// @host doesn't export its own Location type, and this is only the handful
+// of fields this view actually reads — not worth a full contract type for.
+type FloorLocation = {
+    id: number;
+    name: string;
+    kind: string;
+    parentLocationId?: number | null;
+};
+
+const props = defineProps<{devices: HostDevice[]; locations: FloorLocation[]}>();
 const emit = defineEmits<{'select-floor': [id: number]}>();
 
-const locationsState = useLocations();
 const customization = useCustomization();
 const theme = computed(() => customization.value.theme);
 
 const building = computed(() =>
-    locationsState.data.value.find((l) => l.kind === 'building')
+    props.locations.find((l) => l.kind === 'building')
 );
 const floors = computed(() =>
-    locationsState.data.value
+    props.locations
         .filter((l) => l.kind === 'floor' && l.parentLocationId === building.value?.id)
         .sort((a, b) => a.name.localeCompare(b.name))
 );
@@ -108,7 +116,6 @@ const floors = computed(() =>
 const shadowGroups = ref<{metadata?: Record<string, unknown>}[]>([]);
 
 onMounted(() => {
-    void locationsState.refresh();
     void groups.list({}).then((list) => {
         shadowGroups.value = list;
     });
@@ -163,7 +170,10 @@ const floorGap = 6;
 const roofHeight = 56;
 const roofOverhang = 16;
 const floorColor = computed(() => theme.value?.accent || '#3b6fd6');
-const alertColor = '#c0392b';
+// Box3D's :color prop needs a real hex string (it does its own channel
+// math for per-face shading), not a CSS var() reference — kept in sync
+// with --bms-status-alert by value.
+const alertColor = '#e0642c';
 const roofColor = '#7a3b2e';
 
 const isDay = ref(true);
@@ -335,7 +345,7 @@ function onFloorClick(id: number): void {
 }
 
 .building-view__list-badge.has-alert {
-    color: #c0392b;
+    color: var(--bms-status-alert, #e0642c);
     opacity: 1;
     font-weight: 700;
 }

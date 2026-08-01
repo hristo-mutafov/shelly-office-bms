@@ -11,6 +11,7 @@
 </template>
 
 <script setup lang="ts">
+import {shade} from '@shared/lib/shade';
 import {computed} from 'vue';
 
 const props = withDefaults(
@@ -26,15 +27,6 @@ const props = withDefaults(
     }>(),
     {x: 0, y: 0, z: 0, lit: true}
 );
-
-function shade(hex: string, amount: number): string {
-    const num = Number.parseInt(hex.replace('#', ''), 16);
-    const clamp = (v: number) => Math.min(255, Math.max(0, v));
-    const r = clamp((num >> 16) + amount);
-    const g = clamp(((num >> 8) & 0xff) + amount);
-    const b = clamp((num & 0xff) + amount);
-    return `rgb(${r}, ${g}, ${b})`;
-}
 
 const dim = computed(() => (props.lit ? 0 : -70));
 

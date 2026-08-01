@@ -106,12 +106,12 @@ async function toggleRelay(): Promise<void> {
 }
 
 .device-popup__badge.is-online {
-    background: color-mix(in srgb, #18a999 18%, transparent);
-    color: #18a999;
+    background: color-mix(in srgb, var(--bms-status-online, #18a999) 18%, transparent);
+    color: var(--bms-status-online, #18a999);
 }
 
 .device-popup__badge.is-offline {
-    background: color-mix(in srgb, #9ca3af 25%, transparent);
+    background: color-mix(in srgb, var(--bms-status-offline, #9ca3af) 25%, transparent);
     color: #6b7280;
 }
 
@@ -156,7 +156,7 @@ async function toggleRelay(): Promise<void> {
 }
 
 .device-popup__error {
-    color: #e0642c;
+    color: var(--bms-status-alert, #e0642c);
     font-size: 0.8rem;
     margin: 8px 0 0;
 }
@@ -171,9 +171,9 @@ async function toggleRelay(): Promise<void> {
     width: 100%;
     padding: 8px;
     border-radius: var(--radius-md, 10px);
-    border: 1px solid color-mix(in srgb, #e0642c 40%, transparent);
+    border: 1px solid color-mix(in srgb, var(--bms-status-alert, #e0642c) 40%, transparent);
     background: transparent;
-    color: #e0642c;
+    color: var(--bms-status-alert, #e0642c);
     font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
